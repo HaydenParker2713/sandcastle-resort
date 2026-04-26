@@ -60,6 +60,11 @@ module.exports = (pool) => {
       return bcrypt.compare(password, hash);
     },
 
+    async changePassword(user_id, new_password) {
+      const hash = await bcrypt.hash(new_password, 10);
+      await pool.execute('UPDATE users SET password_hash = ? WHERE user_id = ?', [hash, user_id]);
+    },
+
     async getAllUsers() {
       const [rows] = await pool.execute(
         `SELECT u.user_id, u.first_name, u.last_name, u.email, r.role_name, u.created_at
@@ -67,6 +72,37 @@ module.exports = (pool) => {
          ORDER BY u.created_at DESC`
       );
       return rows;
+    },
+
+    async updateUserRole(user_id, role_name) {
+      const [roles] = await pool.execute(`SELECT role_id FROM roles WHERE role_name = ?`, [role_name]);
+      if (!roles.length) {
+        const err = new Error('Invalid role.');
+        err.code = 'INVALID_ROLE';
+        throw err;
+      }
+      await pool.execute(`UPDATE users SET role_id = ? WHERE user_id = ?`, [roles[0].role_id, user_id]);
+    },
+
+    async updateProfile(user_id, { first_name, last_name, email }) {
+      const [existing] = await pool.execute(
+        `SELECT user_id FROM users WHERE email = ? AND user_id != ?`, [email, user_id]
+      );
+      if (existing.length) {
+        const err = new Error('Email is already in use by another account.');
+        err.code = 'EMAIL_TAKEN';
+        throw err;
+      }
+      await pool.execute(
+        `UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE user_id = ?`,
+        [first_name, last_name, email, user_id]
+      );
+      const [rows] = await pool.execute(
+        `SELECT u.user_id, u.first_name, u.last_name, u.email, r.role_name
+         FROM users u JOIN roles r ON u.role_id = r.role_id WHERE u.user_id = ?`,
+        [user_id]
+      );
+      return rows[0];
     }
   };
 
@@ -132,6 +168,23 @@ module.exports = (pool) => {
         [user_id]
       );
       return rows;
+    },
+
+    async getReservationById(reservation_id) {
+      const [rows] = await pool.execute(
+        `SELECT r.reservation_id, r.check_in, r.check_out,
+                u.first_name, u.last_name, u.email,
+                un.unit_code, ut.type_name,
+                i.total_amount
+         FROM reservations r
+         JOIN users u ON r.user_id = u.user_id
+         JOIN units un ON r.unit_id = un.unit_id
+         JOIN unit_types ut ON un.unit_type_id = ut.unit_type_id
+         LEFT JOIN invoices i ON r.reservation_id = i.reservation_id
+         WHERE r.reservation_id = ?`,
+        [reservation_id]
+      );
+      return rows[0] || null;
     },
 
     async getAllReservations() {
@@ -257,5 +310,75 @@ module.exports = (pool) => {
     }
   };
 
-  return { unitService, authService, reservationService, invoiceService, ticketService };
+  const reviewService = {
+    async createReview({ reservation_id, user_id, unit_id, rating, comment }) {
+      const [result] = await pool.execute(
+        `INSERT INTO reviews (reservation_id, user_id, unit_id, rating, comment)
+         VALUES (?, ?, ?, ?, ?)`,
+        [reservation_id, user_id, unit_id, rating, comment || null]
+      );
+      return result.insertId;
+    },
+
+    async getReviewByReservation(reservation_id) {
+      const [rows] = await pool.execute(
+        `SELECT review_id, rating, comment, created_at FROM reviews WHERE reservation_id = ?`,
+        [reservation_id]
+      );
+      return rows[0] || null;
+    },
+
+    async getReviewsByUnit(unit_id) {
+      const [rows] = await pool.execute(
+        `SELECT rv.rating, rv.comment, rv.created_at, u.first_name, u.last_name
+         FROM reviews rv
+         JOIN users u ON rv.user_id = u.user_id
+         WHERE rv.unit_id = ?
+         ORDER BY rv.created_at DESC`,
+        [unit_id]
+      );
+      return rows;
+    },
+
+    async getAllReviews() {
+      const [rows] = await pool.execute(
+        `SELECT rv.review_id, rv.rating, rv.comment, rv.created_at,
+                u.first_name, u.last_name,
+                un.unit_code, ut.type_name
+         FROM reviews rv
+         JOIN users u ON rv.user_id = u.user_id
+         JOIN units un ON rv.unit_id = un.unit_id
+         JOIN unit_types ut ON un.unit_type_id = ut.unit_type_id
+         ORDER BY rv.created_at DESC`
+      );
+      return rows;
+    }
+  };
+
+  const statsService = {
+    async getAdminStats() {
+      const [[revenue]] = await pool.execute(
+        `SELECT COALESCE(SUM(total_amount),0) AS total_revenue,
+                COUNT(*) AS total_invoices
+         FROM invoices WHERE status = 'paid'`
+      );
+      const [monthly] = await pool.execute(
+        `SELECT DATE_FORMAT(i.created_at, '%Y-%m') AS month,
+                COALESCE(SUM(i.total_amount),0) AS revenue,
+                COUNT(*) AS bookings
+         FROM invoices i
+         JOIN reservations r ON i.reservation_id = r.reservation_id
+         WHERE r.status = 'confirmed'
+           AND i.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+         GROUP BY month
+         ORDER BY month ASC`
+      );
+      const [[avgRating]] = await pool.execute(
+        `SELECT ROUND(AVG(rating),1) AS avg_rating, COUNT(*) AS total_reviews FROM reviews`
+      );
+      return { revenue, monthly, avgRating };
+    }
+  };
+
+  return { unitService, authService, reservationService, invoiceService, ticketService, reviewService, statsService };
 };

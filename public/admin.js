@@ -226,15 +226,24 @@ async function loadUsers() {
     document.getElementById('statUsers').textContent = users.length;
 
     let html = `<table>
-      <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+      <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Change Role</th><th>Joined</th></tr></thead>
       <tbody>`;
 
     users.forEach(u => {
+      const isAdmin = u.role_name === 'admin';
+      const roleSelect = isAdmin
+        ? `<span class="sub-muted" style="font-size:12px">Protected</span>`
+        : `<select class="inline" onchange="updateUserRole(${u.user_id},this.value,this)">
+             <option value="guest"  ${u.role_name === 'guest'  ? 'selected' : ''}>Guest</option>
+             <option value="staff"  ${u.role_name === 'staff'  ? 'selected' : ''}>Staff</option>
+           </select>`;
+
       html += `<tr>
         <td>#${u.user_id}</td>
         <td>${u.first_name} ${u.last_name}</td>
         <td>${u.email}</td>
         <td>${badge(u.role_name, u.role_name)}</td>
+        <td>${roleSelect}</td>
         <td>${formatDate(u.created_at)}</td>
       </tr>`;
     });
@@ -246,9 +255,121 @@ async function loadUsers() {
   }
 }
 
+window.updateUserRole = async (user_id, role_name, select) => {
+  select.disabled = true;
+  try {
+    await apiFetch(`/api/admin/users/${user_id}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role_name })
+    });
+    showMessage(`User #${user_id} role updated to ${role_name}.`);
+    await loadUsers();
+  } catch (err) {
+    showMessage(err.message, 'error');
+    select.disabled = false;
+  }
+};
+
+// ── Search / filter helpers ──────────────────────────────────────────────
+function wireSearch(inputId, tableWrapId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.addEventListener('input', () => {
+    const q = input.value.toLowerCase();
+    const wrap = document.getElementById(tableWrapId);
+    if (!wrap) return;
+    wrap.querySelectorAll('tbody tr').forEach(tr => {
+      tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+}
+
+// ── Revenue chart ────────────────────────────────────────────────────────
+let revenueChartInstance = null;
+
+async function loadRevenue() {
+  try {
+    const { revenue, monthly, avgRating } = await apiFetch('/api/admin/stats');
+    document.getElementById('statTotalRevenue').textContent =
+      '$' + Number(revenue.total_revenue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('statAvgRating').textContent =
+      avgRating.avg_rating ? `${avgRating.avg_rating} ★ (${avgRating.total_reviews})` : '–';
+
+    const labels  = monthly.map(m => m.month);
+    const data    = monthly.map(m => Number(m.revenue));
+
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    if (revenueChartInstance) revenueChartInstance.destroy();
+    revenueChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Revenue ($)',
+          data,
+          backgroundColor: 'rgba(14,165,164,0.7)',
+          borderColor: '#0ea5a4',
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => '$' + v } }
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Revenue load error:', err);
+  }
+}
+
+// ── Reviews tab ──────────────────────────────────────────────────────────
+function stars(rating) {
+  return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+}
+
+async function loadReviews() {
+  try {
+    const reviews = await apiFetch('/api/admin/reviews');
+    if (!reviews.length) {
+      document.getElementById('reviewsTable').innerHTML = '<p class="muted" style="padding:20px">No reviews yet.</p>';
+      return;
+    }
+    let html = `<table>
+      <thead><tr><th>Rating</th><th>Guest</th><th>Unit</th><th>Comment</th><th>Date</th></tr></thead>
+      <tbody>`;
+    reviews.forEach(r => {
+      html += `<tr>
+        <td style="color:#f59e0b;font-size:15px;letter-spacing:1px">${stars(r.rating)}</td>
+        <td>${r.first_name} ${r.last_name}</td>
+        <td>${r.unit_code}<br><span class="sub-muted">${r.type_name}</span></td>
+        <td>${r.comment ? r.comment : '<span class="sub-muted">–</span>'}</td>
+        <td>${formatDate(r.created_at)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('reviewsTable').innerHTML = html;
+  } catch (err) {
+    document.getElementById('reviewsTable').textContent = 'Failed to load reviews.';
+  }
+}
+
 async function init() {
   await loadProfile();
-  await Promise.all([loadReservations(), loadUnits(), loadTickets(), loadUsers()]);
+  await Promise.all([loadReservations(), loadUnits(), loadTickets(), loadUsers(), loadRevenue(), loadReviews()]);
+
+  wireSearch('searchReservations', 'reservationsTable');
+  wireSearch('searchTickets', 'ticketsTable');
+  wireSearch('searchUsers', 'usersTable');
+
+  // Poll every 10 seconds — tickets and reservations update live
+  setInterval(async () => {
+    await loadTickets();
+    await loadReservations();
+  }, 10000);
 }
 
 init();

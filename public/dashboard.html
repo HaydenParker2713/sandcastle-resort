@@ -52,6 +52,7 @@
       <button class="dash-tab-btn" data-panel="panel-bookings">📅 My Bookings <span id="bookingsBadge"></span></button>
       <button class="dash-tab-btn" data-panel="panel-invoices">🧾 Invoices</button>
       <button class="dash-tab-btn" data-panel="panel-tickets">🔧 Report Issue</button>
+      <button class="dash-tab-btn" data-panel="panel-account">⚙️ Account</button>
     </div>
 
     <!-- ══ Panel 1: Browse & Book ════════════════════════════════════════ -->
@@ -141,12 +142,34 @@
 
     <!-- ══ Panel 2: My Bookings ══════════════════════════════════════════ -->
     <div id="panel-bookings" class="dash-panel">
-      <div class="card">
+      <div class="card" style="margin-bottom:18px">
         <h2>My Reservations</h2>
         <div id="myReservations">
           <div class="empty-state">
             <div class="empty-icon">📭</div>
             <p>No active reservations yet.<br>Head to Browse &amp; Book to get started.</p>
+          </div>
+        </div>
+      </div>
+      <!-- Review modal -->
+      <div id="reviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:14px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+          <h3 style="margin:0 0 6px;color:#0c4a4a">Leave a Review</h3>
+          <p id="reviewModalUnit" class="muted" style="font-size:13px;margin-bottom:16px"></p>
+          <div id="reviewMessage" class="message-box" style="display:none;margin-bottom:12px"></div>
+          <div style="margin-bottom:14px">
+            <label style="font-size:13px;font-weight:600;color:#0c4a4a;display:block;margin-bottom:6px">Rating</label>
+            <div id="starPicker" style="display:flex;gap:6px;font-size:2rem;cursor:pointer">
+              <span data-star="1">☆</span><span data-star="2">☆</span><span data-star="3">☆</span><span data-star="4">☆</span><span data-star="5">☆</span>
+            </div>
+          </div>
+          <div style="margin-bottom:18px">
+            <label style="font-size:13px;font-weight:600;color:#0c4a4a;display:block;margin-bottom:6px">Comment (optional)</label>
+            <textarea id="reviewComment" rows="3" placeholder="How was your stay?" style="width:100%;padding:10px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box"></textarea>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button id="reviewCancelBtn" class="btn-ghost">Cancel</button>
+            <button id="reviewSubmitBtn" class="btn-primary">Submit Review</button>
           </div>
         </div>
       </div>
@@ -167,9 +190,9 @@
 
     <!-- ══ Panel 4: Report Issue ══════════════════════════════════════════ -->
     <div id="panel-tickets" class="dash-panel">
-      <div class="card">
+      <div class="card" style="margin-bottom:18px">
         <h2>Report a Maintenance or Housekeeping Issue</h2>
-        <p class="muted" style="font-size:13px;margin-bottom:18px">Our team will be notified and you can track status in the admin panel.</p>
+        <p class="muted" style="font-size:13px;margin-bottom:18px">Our team will be notified. Your submitted tickets appear below instantly.</p>
         <div id="ticketMessage" class="message-box" style="display:none;margin-bottom:16px"></div>
         <form id="ticketForm">
           <div class="ticket-form">
@@ -195,6 +218,66 @@
             <div class="ticket-form-field full">
               <button type="submit" class="btn-primary" style="padding:12px 28px">Submit Ticket</button>
             </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="flex-between" style="margin-bottom:14px">
+          <h2 style="margin:0">My Submitted Tickets</h2>
+          <span id="ticketLiveIndicator" style="font-size:12px;color:var(--muted)">● live</span>
+        </div>
+        <div id="myTickets">
+          <div class="empty-state"><div class="empty-icon">🎫</div><p>No tickets submitted yet.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Panel 5: Account ═════════════════════════════════════════════════ -->
+    <div id="panel-account" class="dash-panel">
+      <div class="card" style="max-width:480px;margin-bottom:18px">
+        <h2>Edit Profile</h2>
+        <p class="muted" style="font-size:13px;margin-bottom:18px">Update your display name or email address.</p>
+        <div id="profileMessage" class="message-box" style="display:none;margin-bottom:14px"></div>
+        <form id="editProfileForm">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">First Name</label>
+                <input type="text" id="profileFirstName" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+              </div>
+              <div>
+                <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">Last Name</label>
+                <input type="text" id="profileLastName" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+              </div>
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">Email</label>
+              <input type="email" id="profileEmail" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+            </div>
+            <button type="submit" class="btn-primary" style="padding:12px 28px;align-self:flex-start">Save Changes</button>
+          </div>
+        </form>
+      </div>
+      <div class="card" style="max-width:480px">
+        <h2>Change Password</h2>
+        <p class="muted" style="font-size:13px;margin-bottom:18px">Update your account password. You'll need your current password to confirm.</p>
+        <div id="pwMessage" class="message-box" style="display:none;margin-bottom:14px"></div>
+        <form id="changePasswordForm">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div>
+              <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">Current Password</label>
+              <input type="password" id="currentPassword" placeholder="Enter current password" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">New Password</label>
+              <input type="password" id="newPassword" placeholder="At least 6 characters" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">Confirm New Password</label>
+              <input type="password" id="confirmPassword" placeholder="Repeat new password" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+            </div>
+            <button type="submit" class="btn-primary" style="padding:12px 28px;align-self:flex-start">Update Password</button>
           </div>
         </form>
       </div>

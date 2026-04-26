@@ -10,6 +10,7 @@ const reservationRoutes = require("./routes/reservationRoutes");
 const ticketRoutes = require("./routes/ticketRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,7 @@ app.use("/api/reservations", reservationRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 app.get("/dashboard", (req, res) => {
   if (!req.session.user) return res.redirect("/");
@@ -48,6 +50,13 @@ app.get("/admin", (req, res) => {
     return res.redirect("/");
   }
   res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+app.get("/staff", (req, res) => {
+  if (!req.session.user || !["admin", "staff"].includes(req.session.user.role_name)) {
+    return res.redirect("/");
+  }
+  res.sendFile(path.join(__dirname, "public", "staff.html"));
 });
 
 app.get("/api/health", (req, res) => {

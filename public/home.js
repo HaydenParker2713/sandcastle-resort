@@ -140,7 +140,7 @@ document.getElementById('loginSubmitBtn').addEventListener('click', async () => 
     const { user } = await apiFetch('/api/auth/login', {
       method: 'POST', body: JSON.stringify({ email, password })
     });
-    window.location.href = user.role_name === 'admin' ? '/admin' : '/dashboard';
+    window.location.href = user.role_name === 'admin' ? '/admin' : user.role_name === 'staff' ? '/staff' : '/dashboard';
   } catch (err) {
     showModalError('loginPanel', err.message);
     btn.disabled = false; btn.textContent = 'Sign In';
@@ -189,7 +189,7 @@ async function requireAuthThenBook() {
   try {
     const { user } = await apiFetch('/api/auth/me');
     if (user) {
-      window.location.href = user.role_name === 'admin' ? '/admin' : '/dashboard';
+      window.location.href = user.role_name === 'admin' ? '/admin' : user.role_name === 'staff' ? '/staff' : '/dashboard';
     } else {
       openModal('loginPanel');
     }
@@ -214,7 +214,7 @@ document.getElementById('heroLearnBtn').addEventListener('click', () => {
   try {
     const { user } = await apiFetch('/api/auth/me');
     if (user) {
-      window.location.href = user.role_name === 'admin' ? '/admin' : '/dashboard';
+      window.location.href = user.role_name === 'admin' ? '/admin' : user.role_name === 'staff' ? '/staff' : '/dashboard';
       return;
     }
   } catch {}

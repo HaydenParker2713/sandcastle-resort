@@ -680,10 +680,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
+      // Fetch which reservations already have a review
+      let reviewedIds = new Set();
+      try {
+        const ids = await apiFetch('/api/reviews/mine');
+        reviewedIds = new Set(ids);
+      } catch {}
+
       container.innerHTML = '';
+      const today = new Date();
       rows.forEach((r) => {
-        const nights = calculateNights(r.check_in, r.check_out);
-        const total  = (r.nightly_rate * nights).toFixed(2);
+        const nights   = calculateNights(r.check_in, r.check_out);
+        const total    = (r.nightly_rate * nights).toFixed(2);
+        const isPast   = new Date(r.check_out) < today;
+        const reviewed = reviewedIds.has(r.reservation_id);
 
         const n = document.createElement('div');
         n.className = 'res-card';
@@ -696,22 +706,29 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div style="text-align:right">
             <div class="res-card-price">$${total}</div>
             <div class="res-card-sub">total</div>
-            <button class="btn-ghost" style="margin-top:10px;font-size:12px;color:#dc2626;border-color:#fca5a5">Cancel</button>
+            ${isPast && !reviewed ? `<button class="btn-secondary review-btn" style="margin-top:8px;font-size:12px;padding:5px 12px">⭐ Review</button>` : ''}
+            ${isPast && reviewed  ? `<div style="margin-top:8px;font-size:12px;color:#10b981;font-weight:600">✓ Reviewed</div>` : ''}
+            ${!isPast ? `<button class="btn-ghost cancel-btn" style="margin-top:10px;font-size:12px;color:#dc2626;border-color:#fca5a5">Cancel</button>` : ''}
           </div>
         `;
-        const btn = n.querySelector('button');
-        btn.addEventListener('click', async () => {
-          btn.disabled = true;
-          try {
-            await apiFetch(`/api/reservations/${r.reservation_id}/cancel`, { method: 'POST' });
-            n.remove();
-            await loadReservations();
-            await loadInvoices();
-          } catch (err) {
-            setDashboardMessage(err.message || 'Cancel failed.', 'error');
-            btn.disabled = false;
-          }
-        });
+        const cancelBtn = n.querySelector('.cancel-btn');
+        if (cancelBtn) {
+          cancelBtn.addEventListener('click', async () => {
+            cancelBtn.disabled = true;
+            try {
+              await apiFetch(`/api/reservations/${r.reservation_id}/cancel`, { method: 'POST' });
+              await loadReservations();
+              await loadInvoices();
+            } catch (err) {
+              setDashboardMessage(err.message || 'Cancel failed.', 'error');
+              cancelBtn.disabled = false;
+            }
+          });
+        }
+        const reviewBtn = n.querySelector('.review-btn');
+        if (reviewBtn) {
+          reviewBtn.addEventListener('click', () => openReviewModal(r.reservation_id, `${r.unit_code} – ${r.type_name}`));
+        }
         container.appendChild(n);
       });
     } catch (err) {
@@ -755,6 +772,47 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  const ticketStatusColors = { open: '#991b1b', in_progress: '#92400e', closed: '#065f46' };
+  const ticketStatusBg    = { open: '#fee2e2', in_progress: '#fef3c7', closed: '#d1fae5' };
+
+  async function loadMyTickets() {
+    const container = document.getElementById('myTickets');
+    if (!container) return;
+    try {
+      const tickets = await apiFetch('/api/tickets');
+      const indicator = document.getElementById('ticketLiveIndicator');
+      if (indicator) {
+        indicator.style.color = '#10b981';
+        indicator.textContent = '● live';
+        setTimeout(() => { indicator.style.color = 'var(--muted)'; }, 1500);
+      }
+      if (!tickets.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🎫</div><p>No tickets submitted yet.</p></div>';
+        return;
+      }
+      container.innerHTML = '';
+      tickets.forEach(t => {
+        const el = document.createElement('div');
+        el.style.cssText = 'display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid #e8f2f2;border-radius:10px;margin-bottom:10px;background:#fff;flex-wrap:wrap';
+        el.innerHTML = `
+          <div>
+            <div style="font-weight:700;color:var(--accent-deep);font-size:14px">${t.unit_code} · ${t.ticket_type}</div>
+            <div style="font-size:14px;margin:3px 0">${t.title}</div>
+            ${t.description ? `<div style="font-size:12px;color:var(--muted)">${t.description}</div>` : ''}
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">${formatDate(t.created_at)}</div>
+          </div>
+          <span style="padding:4px 12px;border-radius:12px;font-size:12px;font-weight:700;white-space:nowrap;
+            background:${ticketStatusBg[t.status]};color:${ticketStatusColors[t.status]}">
+            ${t.status.replace('_', ' ')}
+          </span>
+        `;
+        container.appendChild(el);
+      });
+    } catch (err) {
+      console.error('Load tickets error:', err);
+    }
+  }
+
   function wireTicketForm(units) {
     const ticketUnitSelect = document.getElementById('ticketUnit');
     if (!ticketUnitSelect) return;
@@ -795,8 +853,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             method: 'POST',
             body: JSON.stringify({ unit_id: Number(unit_id), ticket_type, title, description })
           });
-          setTicketMessage('Ticket submitted successfully.', 'success');
+          setTicketMessage('Ticket submitted!', 'success');
           ticketForm.reset();
+          await loadMyTickets();
         } catch (err) {
           setTicketMessage(err.message, 'error');
         }
@@ -811,6 +870,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const user = me.user;
         if (user) {
           welcomeEl.textContent = `Welcome, ${user.first_name} ${user.last_name}`;
+          const fn = document.getElementById('profileFirstName');
+          if (fn) { fn.value = user.first_name; document.getElementById('profileLastName').value = user.last_name; document.getElementById('profileEmail').value = user.email; }
           if (user.role_name === 'admin') {
             const adminLink = document.getElementById('adminLink');
             if (adminLink) adminLink.style.display = 'inline-block';
@@ -886,5 +947,168 @@ document.addEventListener("DOMContentLoaded", async () => {
     wireTicketForm(units || []);
     await loadReservations();
     await loadInvoices();
+    await loadMyTickets();
+
+    // Poll every 15 seconds so ticket status updates appear without refreshing
+    setInterval(loadMyTickets, 15000);
+
+    // ── Edit profile form ────────────────────────────────────────────────
+    const editProfileForm = document.getElementById('editProfileForm');
+    if (editProfileForm) {
+      editProfileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msgBox = document.getElementById('profileMessage');
+        const first_name = document.getElementById('profileFirstName').value.trim();
+        const last_name  = document.getElementById('profileLastName').value.trim();
+        const email      = document.getElementById('profileEmail').value.trim();
+        msgBox.style.display = 'none';
+        if (!first_name || !last_name || !email) {
+          msgBox.textContent = 'All fields are required.';
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+          return;
+        }
+        const btn = editProfileForm.querySelector('button[type="submit"]');
+        btn.disabled = true; btn.textContent = 'Saving...';
+        try {
+          const { user } = await apiFetch('/api/auth/profile', {
+            method: 'PATCH',
+            body: JSON.stringify({ first_name, last_name, email })
+          });
+          const welcomeEl = document.getElementById('welcomeText');
+          if (welcomeEl) welcomeEl.textContent = `Welcome, ${user.first_name} ${user.last_name}`;
+          msgBox.textContent = 'Profile updated successfully.';
+          msgBox.className = 'message-box success';
+          msgBox.style.display = 'block';
+        } catch (err) {
+          msgBox.textContent = err.message;
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+        } finally {
+          btn.disabled = false; btn.textContent = 'Save Changes';
+        }
+      });
+    }
+
+    // ── Review modal ──────────────────────────────────────────────────────
+    let _reviewReservationId = null;
+    let _reviewRating = 0;
+
+    function openReviewModal(reservation_id, unitLabel) {
+      _reviewReservationId = reservation_id;
+      _reviewRating = 0;
+      document.getElementById('reviewModalUnit').textContent = unitLabel;
+      document.getElementById('reviewComment').value = '';
+      document.getElementById('reviewMessage').style.display = 'none';
+      setStars(0);
+      const modal = document.getElementById('reviewModal');
+      modal.style.display = 'flex';
+    }
+
+    function setStars(n) {
+      _reviewRating = n;
+      document.querySelectorAll('#starPicker span').forEach((s, i) => {
+        s.textContent = i < n ? '★' : '☆';
+        s.style.color = i < n ? '#f59e0b' : '#d1d5db';
+      });
+    }
+
+    document.querySelectorAll('#starPicker span').forEach(s => {
+      s.addEventListener('click', () => setStars(Number(s.dataset.star)));
+      s.addEventListener('mouseover', () => {
+        document.querySelectorAll('#starPicker span').forEach((x, i) => {
+          x.textContent = i < Number(s.dataset.star) ? '★' : '☆';
+          x.style.color = i < Number(s.dataset.star) ? '#f59e0b' : '#d1d5db';
+        });
+      });
+      s.addEventListener('mouseout', () => setStars(_reviewRating));
+    });
+
+    document.getElementById('reviewCancelBtn').addEventListener('click', () => {
+      document.getElementById('reviewModal').style.display = 'none';
+    });
+
+    document.getElementById('reviewSubmitBtn').addEventListener('click', async () => {
+      const msgBox = document.getElementById('reviewMessage');
+      msgBox.style.display = 'none';
+      if (!_reviewRating) {
+        msgBox.textContent = 'Please select a star rating.';
+        msgBox.className = 'message-box error';
+        msgBox.style.display = 'block';
+        return;
+      }
+      const btn = document.getElementById('reviewSubmitBtn');
+      btn.disabled = true; btn.textContent = 'Submitting...';
+      try {
+        await apiFetch('/api/reviews', {
+          method: 'POST',
+          body: JSON.stringify({
+            reservation_id: _reviewReservationId,
+            rating: _reviewRating,
+            comment: document.getElementById('reviewComment').value.trim()
+          })
+        });
+        document.getElementById('reviewModal').style.display = 'none';
+        setDashboardMessage('Thanks for your review!', 'success');
+        await loadReservations();
+      } catch (err) {
+        msgBox.textContent = err.message;
+        msgBox.className = 'message-box error';
+        msgBox.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Submit Review';
+      }
+    });
+
+    // ── Password change form ─────────────────────────────────────────────
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    if (changePasswordForm) {
+      changePasswordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msgBox = document.getElementById('pwMessage');
+        const current_password = document.getElementById('currentPassword').value;
+        const new_password     = document.getElementById('newPassword').value;
+        const confirm_password = document.getElementById('confirmPassword').value;
+
+        msgBox.style.display = 'none';
+
+        if (!current_password || !new_password || !confirm_password) {
+          msgBox.textContent = 'All fields are required.';
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+          return;
+        }
+        if (new_password.length < 6) {
+          msgBox.textContent = 'New password must be at least 6 characters.';
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+          return;
+        }
+        if (new_password !== confirm_password) {
+          msgBox.textContent = 'New passwords do not match.';
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+          return;
+        }
+
+        const btn = changePasswordForm.querySelector('button[type="submit"]');
+        btn.disabled = true; btn.textContent = 'Updating...';
+        try {
+          await apiFetch('/api/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify({ current_password, new_password })
+          });
+          changePasswordForm.reset();
+          msgBox.textContent = 'Password updated successfully.';
+          msgBox.className = 'message-box success';
+          msgBox.style.display = 'block';
+        } catch (err) {
+          msgBox.textContent = err.message;
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+        } finally {
+          btn.disabled = false; btn.textContent = 'Update Password';
+        }
+      });
+    }
   }
 });
