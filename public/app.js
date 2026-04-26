@@ -29,6 +29,16 @@ function setMessage(message, type = "info") {
   box.textContent = message;
 }
 
+function formatDate(val) {
+  if (!val) return '';
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    const [y, m, d] = val.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString();
+  }
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? val : d.toLocaleDateString();
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const registerForm = document.getElementById("registerForm");
   const loginForm = document.getElementById("loginForm");
@@ -295,77 +305,133 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  function unitGradient(typeName) {
+    const t = typeName.toLowerCase();
+    if (t.includes('oceanfront'))  return 'linear-gradient(135deg,#0c4a6e,#0ea5e9)';
+    if (t.includes('poolside'))    return 'linear-gradient(135deg,#065f46,#10b981)';
+    if (t.includes('queen'))       return 'linear-gradient(135deg,#4c1d95,#8b5cf6)';
+    if (t.includes('two bedroom')) return 'linear-gradient(135deg,#7c2d12,#f97316)';
+    if (t.includes('one bedroom')) return 'linear-gradient(135deg,#1e3a5f,#3b82f6)';
+    if (t.includes('studio'))      return 'linear-gradient(135deg,#713f12,#eab308)';
+    return                                'linear-gradient(135deg,#374151,#6b7280)';
+  }
+
+  function unitEmoji(typeName) {
+    const t = typeName.toLowerCase();
+    if (t.includes('oceanfront')) return '🌊';
+    if (t.includes('poolside'))   return '🏊';
+    if (t.includes('two bedroom'))return '🏠';
+    if (t.includes('queen'))      return '👑';
+    if (t.includes('studio'))     return '🏖️';
+    return '🛏️';
+  }
+
   async function loadUnits() {
     try {
       const units = await apiFetch('/api/units');
-      const unitSelect = document.getElementById('unitId');
-      const gallery = document.getElementById('roomGallery');
 
+      // Populate hidden select (used by calendar selection logic)
+      const unitSelect = document.getElementById('unitId');
       if (unitSelect) {
         unitSelect.innerHTML = '<option value="" disabled selected>Select a unit</option>';
-        units.forEach((unit) => {
+        units.forEach(u => {
           const opt = document.createElement('option');
-          opt.value = unit.unit_id;
-          opt.textContent = `${unit.unit_code} (${unit.type_name}, ${unit.status})`;
+          opt.value = u.unit_id;
+          opt.textContent = `${u.unit_code} (${u.type_name})`;
           unitSelect.appendChild(opt);
         });
+      }
 
-        // Add event listener to update view when unit is selected from dropdown
-        unitSelect.addEventListener('change', () => {
-          const selectedUnitId = unitSelect.value;
-          if (selectedUnitId) {
-            const selectedUnit = units.find(u => u.unit_id == selectedUnitId);
-            if (selectedUnit) {
-              selectUnit(selectedUnit);
-            }
-          }
+      // Populate quick-book select
+      const quickSelect = document.getElementById('quickUnitId');
+      if (quickSelect) {
+        quickSelect.innerHTML = '<option value="" disabled selected>Select a unit</option>';
+        units.forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u.unit_id;
+          opt.textContent = `${u.unit_code} – ${u.type_name} ($${Number(u.nightly_rate).toFixed(0)}/night)`;
+          if (u.status !== 'available') opt.disabled = true;
+          quickSelect.appendChild(opt);
         });
       }
 
+      // Render gradient gallery cards
+      const gallery = document.getElementById('roomGallery');
       if (gallery) {
         gallery.innerHTML = '';
-        const imageChoices = [
-          '/room1.svg', '/room2.svg', '/room3.svg', '/room4.svg', '/room5.svg',
-          '/room6.svg', '/room7.svg', '/room8.svg', '/room9.svg', '/room10.svg'
-        ];
-
-        units.forEach((unit, index) => {
-          const imageSrc = imageChoices[index % imageChoices.length];
-          unit.imageSrc = imageSrc;
-
-          const thumb = document.createElement('div');
-          thumb.className = 'thumb';
-          thumb.innerHTML = `
-            <img src="${imageSrc}" alt="room ${unit.unit_code}" />
-            <p><strong>${unit.unit_code}</strong> (ID: ${unit.unit_id})</p>
+        units.forEach(unit => {
+          const dotClass = unit.status === 'available' ? 'dot-available'
+                         : unit.status === 'maintenance' ? 'dot-maintenance' : 'dot-inactive';
+          const card = document.createElement('div');
+          card.className = 'unit-card';
+          card.dataset.unitId = unit.unit_id;
+          card.innerHTML = `
+            <div class="unit-card-img" style="background:${unitGradient(unit.type_name)}">
+              <div>
+                <div style="font-size:1.4rem">${unitEmoji(unit.type_name)}</div>
+                <div>${unit.unit_code}</div>
+              </div>
+            </div>
+            <div class="unit-card-body">
+              <div class="unit-card-code">${unit.unit_code}</div>
+              <div class="unit-card-type">${unit.type_name}</div>
+              <div class="unit-card-rate">$${Number(unit.nightly_rate).toFixed(0)}<span style="font-size:11px;font-weight:400;color:var(--muted)">/night</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-top:4px">
+                <span class="unit-status-dot ${dotClass}"></span>
+                ${unit.status === 'available' ? 'Available' : unit.status}
+                &nbsp;·&nbsp; 👥 ${unit.capacity}
+              </div>
+            </div>
           `;
-          thumb.style.cursor = 'pointer';
-          thumb.addEventListener('click', () => {
-            selectUnit(unit);
-          });
-          gallery.appendChild(thumb);
+          if (unit.status === 'available') {
+            card.addEventListener('click', () => selectUnit(unit, card));
+          } else {
+            card.style.opacity = '.55';
+            card.style.cursor = 'not-allowed';
+          }
+          gallery.appendChild(card);
         });
       }
+
+      return units;
     } catch (error) {
       setDashboardMessage('Unable to load units.', 'error');
       console.error('Load units error:', error);
+      return [];
     }
   }
 
-  function selectUnit(unit) {
-    document.getElementById('unitId').value = unit.unit_id;
+  function selectUnit(unit, cardEl) {
+    // Highlight selected card
+    document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('selected'));
+    if (cardEl) cardEl.classList.add('selected');
+
+    // Sync hidden select
+    const unitSelect = document.getElementById('unitId');
+    if (unitSelect) unitSelect.value = unit.unit_id;
+
     currentUnitRate = Number(unit.nightly_rate);
+
+    // Render detail banner
     const detailsEl = document.getElementById('unitDetails');
     detailsEl.style.display = 'block';
-    const imageSrc = unit.imageSrc || '/room1.svg';
     detailsEl.innerHTML = `
-      <h3>Room Views for ${unit.unit_code}</h3>
-      <img src="${imageSrc}" alt="room view for ${unit.unit_code}" style="width: 300px; height: auto;" />
-      <p><strong>Type:</strong> ${unit.type_name}</p>
-      <p><strong>Capacity:</strong> ${unit.capacity}</p>
-      <p><strong>Nightly Rate:</strong> $${Number(unit.nightly_rate).toFixed(2)}</p>
-      <p><strong>Status:</strong> ${unit.status}</p>
+      <div class="unit-detail-panel" style="background:${unitGradient(unit.type_name)}">
+        <div class="detail-emoji">${unitEmoji(unit.type_name)}</div>
+        <div style="flex:1">
+          <h3>${unit.unit_code} – ${unit.type_name}</h3>
+          <p>👥 Up to ${unit.capacity} guests &nbsp;·&nbsp; ${unit.status}</p>
+        </div>
+        <div style="text-align:right">
+          <div class="detail-rate">$${Number(unit.nightly_rate).toFixed(2)}</div>
+          <div style="font-size:12px;opacity:.8">per night</div>
+        </div>
+      </div>
     `;
+
+    // Scroll to calendar
+    detailsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
     calendarSelection.unit_id = unit.unit_id;
     calendarSelection.start = null;
     calendarSelection.end = null;
@@ -583,7 +649,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       setDashboardMessage(`Reservation confirmed for ${calendarSelection.start} to ${checkOut}.`, 'success');
       await loadReservations();
+      await loadInvoices();
       await loadCalendar(calendarSelection.unit_id);
+      setTimeout(() => { if (window.switchDashTab) window.switchDashTab('panel-bookings'); }, 1200);
     } catch (err) {
       setDashboardMessage(err.message || 'Reservation confirmation failed.', 'error');
       console.error('Confirm reservation error:', err);
@@ -596,37 +664,52 @@ document.addEventListener("DOMContentLoaded", async () => {
       const container = document.getElementById('myReservations');
       if (!container) return;
 
+      // Update stats
+      const resCountEl = document.getElementById('statResCount');
+      if (resCountEl) resCountEl.textContent = rows.length;
+      const nextEl = document.getElementById('statNextCheckIn');
+      if (nextEl) {
+        const upcoming = rows.filter(r => new Date(r.check_in) >= new Date()).sort((a,b) => new Date(a.check_in) - new Date(b.check_in));
+        nextEl.textContent = upcoming.length ? formatDate(upcoming[0].check_in) : '–';
+      }
+      const badge = document.getElementById('bookingsBadge');
+      if (badge && rows.length) badge.textContent = ` (${rows.length})`;
+
       if (!rows.length) {
-        container.textContent = 'No reservations yet.';
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No active reservations yet.<br>Head to Browse &amp; Book to get started.</p></div>';
         return;
       }
 
       container.innerHTML = '';
       rows.forEach((r) => {
         const nights = calculateNights(r.check_in, r.check_out);
-        const total = (r.nightly_rate * nights).toFixed(2);
+        const total  = (r.nightly_rate * nights).toFixed(2);
 
         const n = document.createElement('div');
-        n.className = 'card';
-        n.style.marginBottom = '10px';
+        n.className = 'res-card';
         n.innerHTML = `
-          <p><strong>${r.unit_code} (${r.type_name})</strong></p>
-          <p>Check-in: ${formatDate(r.check_in)} | Check-out: ${formatDate(r.check_out)} | Nights: ${nights}</p>
-          <p>Adults: ${r.adults} | Status: ${r.status}</p>
-          <p>Rate: $${Number(r.nightly_rate).toFixed(2)} / night | Total cost: $${total}</p>
-          <button class="btn-ghost" data-id="${r.reservation_id}">Cancel</button>
+          <div class="res-card-left">
+            <h4>${unitEmoji(r.type_name)} ${r.unit_code} – ${r.type_name}</h4>
+            <p>📅 ${formatDate(r.check_in)} → ${formatDate(r.check_out)} &nbsp;·&nbsp; ${nights} night${nights !== 1 ? 's' : ''}</p>
+            <p>👥 ${r.adults} adult${r.adults !== 1 ? 's' : ''} &nbsp;·&nbsp; $${Number(r.nightly_rate).toFixed(2)}/night</p>
+          </div>
+          <div style="text-align:right">
+            <div class="res-card-price">$${total}</div>
+            <div class="res-card-sub">total</div>
+            <button class="btn-ghost" style="margin-top:10px;font-size:12px;color:#dc2626;border-color:#fca5a5">Cancel</button>
+          </div>
         `;
         const btn = n.querySelector('button');
         btn.addEventListener('click', async () => {
+          btn.disabled = true;
           try {
             await apiFetch(`/api/reservations/${r.reservation_id}/cancel`, { method: 'POST' });
-            setDashboardMessage('Reservation cancelled.', 'success');
             n.remove();
-            if (!container.querySelector('.card')) {
-              container.textContent = 'No reservations yet.';
-            }
+            await loadReservations();
+            await loadInvoices();
           } catch (err) {
             setDashboardMessage(err.message || 'Cancel failed.', 'error');
+            btn.disabled = false;
           }
         });
         container.appendChild(n);
@@ -637,6 +720,90 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  async function loadInvoices() {
+    const container = document.getElementById('myInvoices');
+    if (!container) return;
+    try {
+      const rows = await apiFetch('/api/invoices/mine');
+
+      // Update unpaid stat
+      const unpaidEl = document.getElementById('statUnpaidCount');
+      if (unpaidEl) unpaidEl.textContent = rows.filter(r => r.invoice_status === 'unpaid').length;
+
+      if (!rows.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🧾</div><p>No invoices yet.</p></div>';
+        return;
+      }
+      container.innerHTML = '';
+      rows.forEach((inv) => {
+        const el = document.createElement('div');
+        el.className = `invoice-card ${inv.invoice_status}`;
+        el.innerHTML = `
+          <div>
+            <div style="font-weight:700;color:var(--accent-deep);font-size:15px">${inv.unit_code} – ${inv.type_name}</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:3px">${formatDate(inv.check_in)} → ${formatDate(inv.check_out)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:1.2rem;font-weight:800;color:var(--accent-deep)">$${Number(inv.total_amount).toFixed(2)}</div>
+            <span class="invoice-badge ${inv.invoice_status}">${inv.invoice_status}</span>
+          </div>
+        `;
+        container.appendChild(el);
+      });
+    } catch (err) {
+      container.innerHTML = '<div class="empty-state"><p>Unable to load invoices.</p></div>';
+    }
+  }
+
+  function wireTicketForm(units) {
+    const ticketUnitSelect = document.getElementById('ticketUnit');
+    if (!ticketUnitSelect) return;
+
+    ticketUnitSelect.innerHTML = '<option value="" disabled selected>Select a unit</option>';
+    units.forEach((u) => {
+      const opt = document.createElement('option');
+      opt.value = u.unit_id;
+      opt.textContent = `${u.unit_code} – ${u.type_name}`;
+      ticketUnitSelect.appendChild(opt);
+    });
+
+    const ticketForm = document.getElementById('ticketForm');
+    const ticketMessageEl = document.getElementById('ticketMessage');
+
+    function setTicketMessage(text, type = 'info') {
+      if (!ticketMessageEl) return;
+      ticketMessageEl.style.display = 'block';
+      ticketMessageEl.className = `message-box ${type}`;
+      ticketMessageEl.textContent = text;
+    }
+
+    if (ticketForm) {
+      ticketForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const unit_id = ticketUnitSelect.value;
+        const ticket_type = document.getElementById('ticketType').value;
+        const title = document.getElementById('ticketTitle').value.trim();
+        const description = document.getElementById('ticketDesc').value.trim();
+
+        if (!unit_id || !title) {
+          setTicketMessage('Unit and title are required.', 'error');
+          return;
+        }
+
+        try {
+          await apiFetch('/api/tickets', {
+            method: 'POST',
+            body: JSON.stringify({ unit_id: Number(unit_id), ticket_type, title, description })
+          });
+          setTicketMessage('Ticket submitted successfully.', 'success');
+          ticketForm.reset();
+        } catch (err) {
+          setTicketMessage(err.message, 'error');
+        }
+      });
+    }
+  }
+
   if (welcomeEl) {
     (async () => {
       try {
@@ -644,6 +811,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         const user = me.user;
         if (user) {
           welcomeEl.textContent = `Welcome, ${user.first_name} ${user.last_name}`;
+          if (user.role_name === 'admin') {
+            const adminLink = document.getElementById('adminLink');
+            if (adminLink) adminLink.style.display = 'inline-block';
+          }
         } else {
           welcomeEl.textContent = 'Welcome, Guest';
         }
@@ -673,18 +844,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (reservationForm) {
       reservationForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const unit_id = Number(document.getElementById('unitId').value);
-        const check_in = document.getElementById('checkIn').value;
+        const msgEl = document.getElementById('reservationMessage');
+        const unit_id = Number(document.getElementById('quickUnitId').value);
+        const check_in  = document.getElementById('checkIn').value;
         const check_out = document.getElementById('checkOut').value;
-        const adults = Number(document.getElementById('adults').value) || 1;
+        const adults    = Number(document.getElementById('adults').value) || 1;
 
-        if (!unit_id || !check_in || !check_out) {
-          setDashboardMessage('Unit, check-in and check-out are required.', 'error');
-          return;
+        function setFormMsg(text, type) {
+          if (!msgEl) return;
+          msgEl.style.display = 'block';
+          msgEl.className = `message-box ${type}`;
+          msgEl.textContent = text;
         }
 
+        if (!unit_id || !check_in || !check_out) {
+          setFormMsg('Unit, check-in and check-out are required.', 'error');
+          return;
+        }
         if (new Date(check_in) >= new Date(check_out)) {
-          setDashboardMessage('Check-out must be after check-in.', 'error');
+          setFormMsg('Check-out must be after check-in.', 'error');
           return;
         }
 
@@ -693,16 +871,20 @@ document.addEventListener("DOMContentLoaded", async () => {
             method: 'POST',
             body: JSON.stringify({ unit_id, check_in, check_out, adults, children: 0 })
           });
-          setDashboardMessage('Reservation created successfully.', 'success');
+          setFormMsg('Reservation created! Switching to My Bookings…', 'success');
           reservationForm.reset();
           await loadReservations();
+          await loadInvoices();
+          setTimeout(() => { if (window.switchDashTab) window.switchDashTab('panel-bookings'); }, 900);
         } catch (error) {
-          setDashboardMessage(error.message, 'error');
+          setFormMsg(error.message, 'error');
         }
       });
     }
 
-    await loadUnits();
+    const units = await loadUnits();
+    wireTicketForm(units || []);
     await loadReservations();
+    await loadInvoices();
   }
 });

@@ -1,12 +1,21 @@
 const express = require('express');
 const { pool } = require('../config/db');
 const createServices = require('../services');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 const { reservationService } = createServices(pool);
 
-// Create a reservation (authenticated users)
+router.get('/', requireRole('admin', 'staff'), async (req, res) => {
+  try {
+    const rows = await reservationService.getAllReservations();
+    res.json(rows);
+  } catch (err) {
+    console.error('Get all reservations error:', err);
+    res.status(500).json({ error: 'Server error fetching reservations.' });
+  }
+});
+
 router.post('/', requireAuth, async (req, res) => {
   try {
     const user_id = req.session.user.user_id;
@@ -27,12 +36,14 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.status(201).json({ message: 'Reservation created.', reservation_id: reservationId });
   } catch (err) {
+    if (err && err.code === 'DOUBLE_BOOKING') {
+      return res.status(409).json({ error: err.message });
+    }
     console.error('Create reservation error:', err);
     res.status(500).json({ error: 'Server error creating reservation.' });
   }
 });
 
-// Get my reservations
 router.get('/mine', requireAuth, async (req, res) => {
   try {
     const user_id = req.session.user.user_id;
@@ -44,7 +55,6 @@ router.get('/mine', requireAuth, async (req, res) => {
   }
 });
 
-// Cancel a reservation
 router.post('/:id/cancel', requireAuth, async (req, res) => {
   try {
     const user_id = req.session.user.user_id;
