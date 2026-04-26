@@ -29,6 +29,16 @@ function setMessage(message, type = "info") {
   box.textContent = message;
 }
 
+function formatDate(val) {
+  if (!val) return '';
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    const [y, m, d] = val.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString();
+  }
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? val : d.toLocaleDateString();
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const registerForm = document.getElementById("registerForm");
   const loginForm = document.getElementById("loginForm");
@@ -295,77 +305,133 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  function unitGradient(typeName) {
+    const t = typeName.toLowerCase();
+    if (t.includes('oceanfront'))  return 'linear-gradient(135deg,#0c4a6e,#0ea5e9)';
+    if (t.includes('poolside'))    return 'linear-gradient(135deg,#065f46,#10b981)';
+    if (t.includes('queen'))       return 'linear-gradient(135deg,#4c1d95,#8b5cf6)';
+    if (t.includes('two bedroom')) return 'linear-gradient(135deg,#7c2d12,#f97316)';
+    if (t.includes('one bedroom')) return 'linear-gradient(135deg,#1e3a5f,#3b82f6)';
+    if (t.includes('studio'))      return 'linear-gradient(135deg,#713f12,#eab308)';
+    return                                'linear-gradient(135deg,#374151,#6b7280)';
+  }
+
+  function unitEmoji(typeName) {
+    const t = typeName.toLowerCase();
+    if (t.includes('oceanfront')) return '🌊';
+    if (t.includes('poolside'))   return '🏊';
+    if (t.includes('two bedroom'))return '🏠';
+    if (t.includes('queen'))      return '👑';
+    if (t.includes('studio'))     return '🏖️';
+    return '🛏️';
+  }
+
   async function loadUnits() {
     try {
       const units = await apiFetch('/api/units');
-      const unitSelect = document.getElementById('unitId');
-      const gallery = document.getElementById('roomGallery');
 
+      // Populate hidden select (used by calendar selection logic)
+      const unitSelect = document.getElementById('unitId');
       if (unitSelect) {
         unitSelect.innerHTML = '<option value="" disabled selected>Select a unit</option>';
-        units.forEach((unit) => {
+        units.forEach(u => {
           const opt = document.createElement('option');
-          opt.value = unit.unit_id;
-          opt.textContent = `${unit.unit_code} (${unit.type_name}, ${unit.status})`;
+          opt.value = u.unit_id;
+          opt.textContent = `${u.unit_code} (${u.type_name})`;
           unitSelect.appendChild(opt);
         });
+      }
 
-        // Add event listener to update view when unit is selected from dropdown
-        unitSelect.addEventListener('change', () => {
-          const selectedUnitId = unitSelect.value;
-          if (selectedUnitId) {
-            const selectedUnit = units.find(u => u.unit_id == selectedUnitId);
-            if (selectedUnit) {
-              selectUnit(selectedUnit);
-            }
-          }
+      // Populate quick-book select
+      const quickSelect = document.getElementById('quickUnitId');
+      if (quickSelect) {
+        quickSelect.innerHTML = '<option value="" disabled selected>Select a unit</option>';
+        units.forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u.unit_id;
+          opt.textContent = `${u.unit_code} – ${u.type_name} ($${Number(u.nightly_rate).toFixed(0)}/night)`;
+          if (u.status !== 'available') opt.disabled = true;
+          quickSelect.appendChild(opt);
         });
       }
 
+      // Render gradient gallery cards
+      const gallery = document.getElementById('roomGallery');
       if (gallery) {
         gallery.innerHTML = '';
-        const imageChoices = [
-          '/room1.svg', '/room2.svg', '/room3.svg', '/room4.svg', '/room5.svg',
-          '/room6.svg', '/room7.svg', '/room8.svg', '/room9.svg', '/room10.svg'
-        ];
-
-        units.forEach((unit, index) => {
-          const imageSrc = imageChoices[index % imageChoices.length];
-          unit.imageSrc = imageSrc;
-
-          const thumb = document.createElement('div');
-          thumb.className = 'thumb';
-          thumb.innerHTML = `
-            <img src="${imageSrc}" alt="room ${unit.unit_code}" />
-            <p><strong>${unit.unit_code}</strong> (ID: ${unit.unit_id})</p>
+        units.forEach(unit => {
+          const dotClass = unit.status === 'available' ? 'dot-available'
+                         : unit.status === 'maintenance' ? 'dot-maintenance' : 'dot-inactive';
+          const card = document.createElement('div');
+          card.className = 'unit-card';
+          card.dataset.unitId = unit.unit_id;
+          card.innerHTML = `
+            <div class="unit-card-img" style="background:${unitGradient(unit.type_name)}">
+              <div>
+                <div style="font-size:1.4rem">${unitEmoji(unit.type_name)}</div>
+                <div>${unit.unit_code}</div>
+              </div>
+            </div>
+            <div class="unit-card-body">
+              <div class="unit-card-code">${unit.unit_code}</div>
+              <div class="unit-card-type">${unit.type_name}</div>
+              <div class="unit-card-rate">$${Number(unit.nightly_rate).toFixed(0)}<span style="font-size:11px;font-weight:400;color:var(--muted)">/night</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-top:4px">
+                <span class="unit-status-dot ${dotClass}"></span>
+                ${unit.status === 'available' ? 'Available' : unit.status}
+                &nbsp;·&nbsp; 👥 ${unit.capacity}
+              </div>
+            </div>
           `;
-          thumb.style.cursor = 'pointer';
-          thumb.addEventListener('click', () => {
-            selectUnit(unit);
-          });
-          gallery.appendChild(thumb);
+          if (unit.status === 'available') {
+            card.addEventListener('click', () => selectUnit(unit, card));
+          } else {
+            card.style.opacity = '.55';
+            card.style.cursor = 'not-allowed';
+          }
+          gallery.appendChild(card);
         });
       }
+
+      return units;
     } catch (error) {
       setDashboardMessage('Unable to load units.', 'error');
       console.error('Load units error:', error);
+      return [];
     }
   }
 
-  function selectUnit(unit) {
-    document.getElementById('unitId').value = unit.unit_id;
+  function selectUnit(unit, cardEl) {
+    // Highlight selected card
+    document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('selected'));
+    if (cardEl) cardEl.classList.add('selected');
+
+    // Sync hidden select
+    const unitSelect = document.getElementById('unitId');
+    if (unitSelect) unitSelect.value = unit.unit_id;
+
     currentUnitRate = Number(unit.nightly_rate);
+
+    // Render detail banner
     const detailsEl = document.getElementById('unitDetails');
     detailsEl.style.display = 'block';
-    const imageSrc = unit.imageSrc || '/room1.svg';
     detailsEl.innerHTML = `
-      <h3>Room Views for ${unit.unit_code}</h3>
-      <img src="${imageSrc}" alt="room view for ${unit.unit_code}" style="width: 300px; height: auto;" />
-      <p><strong>Type:</strong> ${unit.type_name}</p>
-      <p><strong>Capacity:</strong> ${unit.capacity}</p>
-      <p><strong>Nightly Rate:</strong> $${Number(unit.nightly_rate).toFixed(2)}</p>
-      <p><strong>Status:</strong> ${unit.status}</p>
+      <div class="unit-detail-panel" style="background:${unitGradient(unit.type_name)}">
+        <div class="detail-emoji">${unitEmoji(unit.type_name)}</div>
+        <div style="flex:1">
+          <h3>${unit.unit_code} – ${unit.type_name}</h3>
+          <p>👥 Up to ${unit.capacity} guests &nbsp;·&nbsp; ${unit.status}</p>
+        </div>
+        <div style="text-align:right">
+          <div class="detail-rate">$${Number(unit.nightly_rate).toFixed(2)}</div>
+          <div style="font-size:12px;opacity:.8">per night</div>
+        </div>
+      </div>
     `;
+
+    // Scroll to calendar
+    detailsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
     calendarSelection.unit_id = unit.unit_id;
     calendarSelection.start = null;
     calendarSelection.end = null;
@@ -583,7 +649,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       setDashboardMessage(`Reservation confirmed for ${calendarSelection.start} to ${checkOut}.`, 'success');
       await loadReservations();
+      await loadInvoices();
       await loadCalendar(calendarSelection.unit_id);
+      setTimeout(() => { if (window.switchDashTab) window.switchDashTab('panel-bookings'); }, 1200);
     } catch (err) {
       setDashboardMessage(err.message || 'Reservation confirmation failed.', 'error');
       console.error('Confirm reservation error:', err);
@@ -596,44 +664,202 @@ document.addEventListener("DOMContentLoaded", async () => {
       const container = document.getElementById('myReservations');
       if (!container) return;
 
+      // Update stats
+      const resCountEl = document.getElementById('statResCount');
+      if (resCountEl) resCountEl.textContent = rows.length;
+      const nextEl = document.getElementById('statNextCheckIn');
+      if (nextEl) {
+        const upcoming = rows.filter(r => new Date(r.check_in) >= new Date()).sort((a,b) => new Date(a.check_in) - new Date(b.check_in));
+        nextEl.textContent = upcoming.length ? formatDate(upcoming[0].check_in) : '–';
+      }
+      const badge = document.getElementById('bookingsBadge');
+      if (badge && rows.length) badge.textContent = ` (${rows.length})`;
+
       if (!rows.length) {
-        container.textContent = 'No reservations yet.';
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No active reservations yet.<br>Head to Browse &amp; Book to get started.</p></div>';
         return;
       }
 
+      // Fetch which reservations already have a review
+      let reviewedIds = new Set();
+      try {
+        const ids = await apiFetch('/api/reviews/mine');
+        reviewedIds = new Set(ids);
+      } catch {}
+
       container.innerHTML = '';
+      const today = new Date();
       rows.forEach((r) => {
-        const nights = calculateNights(r.check_in, r.check_out);
-        const total = (r.nightly_rate * nights).toFixed(2);
+        const nights   = calculateNights(r.check_in, r.check_out);
+        const total    = (r.nightly_rate * nights).toFixed(2);
+        const isPast   = new Date(r.check_out) < today;
+        const reviewed = reviewedIds.has(r.reservation_id);
 
         const n = document.createElement('div');
-        n.className = 'card';
-        n.style.marginBottom = '10px';
+        n.className = 'res-card';
         n.innerHTML = `
-          <p><strong>${r.unit_code} (${r.type_name})</strong></p>
-          <p>Check-in: ${formatDate(r.check_in)} | Check-out: ${formatDate(r.check_out)} | Nights: ${nights}</p>
-          <p>Adults: ${r.adults} | Status: ${r.status}</p>
-          <p>Rate: $${Number(r.nightly_rate).toFixed(2)} / night | Total cost: $${total}</p>
-          <button class="btn-ghost" data-id="${r.reservation_id}">Cancel</button>
+          <div class="res-card-left">
+            <h4>${unitEmoji(r.type_name)} ${r.unit_code} – ${r.type_name}</h4>
+            <p>📅 ${formatDate(r.check_in)} → ${formatDate(r.check_out)} &nbsp;·&nbsp; ${nights} night${nights !== 1 ? 's' : ''}</p>
+            <p>👥 ${r.adults} adult${r.adults !== 1 ? 's' : ''} &nbsp;·&nbsp; $${Number(r.nightly_rate).toFixed(2)}/night</p>
+          </div>
+          <div style="text-align:right">
+            <div class="res-card-price">$${total}</div>
+            <div class="res-card-sub">total</div>
+            ${isPast && !reviewed ? `<button class="btn-secondary review-btn" style="margin-top:8px;font-size:12px;padding:5px 12px">⭐ Review</button>` : ''}
+            ${isPast && reviewed  ? `<div style="margin-top:8px;font-size:12px;color:#10b981;font-weight:600">✓ Reviewed</div>` : ''}
+            ${!isPast ? `<button class="btn-ghost cancel-btn" style="margin-top:10px;font-size:12px;color:#dc2626;border-color:#fca5a5">Cancel</button>` : ''}
+          </div>
         `;
-        const btn = n.querySelector('button');
-        btn.addEventListener('click', async () => {
-          try {
-            await apiFetch(`/api/reservations/${r.reservation_id}/cancel`, { method: 'POST' });
-            setDashboardMessage('Reservation cancelled.', 'success');
-            n.remove();
-            if (!container.querySelector('.card')) {
-              container.textContent = 'No reservations yet.';
+        const cancelBtn = n.querySelector('.cancel-btn');
+        if (cancelBtn) {
+          cancelBtn.addEventListener('click', async () => {
+            cancelBtn.disabled = true;
+            try {
+              await apiFetch(`/api/reservations/${r.reservation_id}/cancel`, { method: 'POST' });
+              await loadReservations();
+              await loadInvoices();
+            } catch (err) {
+              setDashboardMessage(err.message || 'Cancel failed.', 'error');
+              cancelBtn.disabled = false;
             }
-          } catch (err) {
-            setDashboardMessage(err.message || 'Cancel failed.', 'error');
-          }
-        });
+          });
+        }
+        const reviewBtn = n.querySelector('.review-btn');
+        if (reviewBtn) {
+          reviewBtn.addEventListener('click', () => openReviewModal(r.reservation_id, `${r.unit_code} – ${r.type_name}`));
+        }
         container.appendChild(n);
       });
     } catch (err) {
       console.error('Load reservations error:', err);
       setDashboardMessage('Unable to load your reservations.', 'error');
+    }
+  }
+
+  async function loadInvoices() {
+    const container = document.getElementById('myInvoices');
+    if (!container) return;
+    try {
+      const rows = await apiFetch('/api/invoices/mine');
+
+      // Update unpaid stat
+      const unpaidEl = document.getElementById('statUnpaidCount');
+      if (unpaidEl) unpaidEl.textContent = rows.filter(r => r.invoice_status === 'unpaid').length;
+
+      if (!rows.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🧾</div><p>No invoices yet.</p></div>';
+        return;
+      }
+      container.innerHTML = '';
+      rows.forEach((inv) => {
+        const el = document.createElement('div');
+        el.className = `invoice-card ${inv.invoice_status}`;
+        el.innerHTML = `
+          <div>
+            <div style="font-weight:700;color:var(--accent-deep);font-size:15px">${inv.unit_code} – ${inv.type_name}</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:3px">${formatDate(inv.check_in)} → ${formatDate(inv.check_out)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:1.2rem;font-weight:800;color:var(--accent-deep)">$${Number(inv.total_amount).toFixed(2)}</div>
+            <span class="invoice-badge ${inv.invoice_status}">${inv.invoice_status}</span>
+          </div>
+        `;
+        container.appendChild(el);
+      });
+    } catch (err) {
+      container.innerHTML = '<div class="empty-state"><p>Unable to load invoices.</p></div>';
+    }
+  }
+
+  const ticketStatusColors = { open: '#991b1b', in_progress: '#92400e', closed: '#065f46' };
+  const ticketStatusBg    = { open: '#fee2e2', in_progress: '#fef3c7', closed: '#d1fae5' };
+
+  async function loadMyTickets() {
+    const container = document.getElementById('myTickets');
+    if (!container) return;
+    try {
+      const tickets = await apiFetch('/api/tickets');
+      const indicator = document.getElementById('ticketLiveIndicator');
+      if (indicator) {
+        indicator.style.color = '#10b981';
+        indicator.textContent = '● live';
+        setTimeout(() => { indicator.style.color = 'var(--muted)'; }, 1500);
+      }
+      if (!tickets.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🎫</div><p>No tickets submitted yet.</p></div>';
+        return;
+      }
+      container.innerHTML = '';
+      tickets.forEach(t => {
+        const el = document.createElement('div');
+        el.style.cssText = 'display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid #e8f2f2;border-radius:10px;margin-bottom:10px;background:#fff;flex-wrap:wrap';
+        el.innerHTML = `
+          <div>
+            <div style="font-weight:700;color:var(--accent-deep);font-size:14px">${t.unit_code} · ${t.ticket_type}</div>
+            <div style="font-size:14px;margin:3px 0">${t.title}</div>
+            ${t.description ? `<div style="font-size:12px;color:var(--muted)">${t.description}</div>` : ''}
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">${formatDate(t.created_at)}</div>
+          </div>
+          <span style="padding:4px 12px;border-radius:12px;font-size:12px;font-weight:700;white-space:nowrap;
+            background:${ticketStatusBg[t.status]};color:${ticketStatusColors[t.status]}">
+            ${t.status.replace('_', ' ')}
+          </span>
+        `;
+        container.appendChild(el);
+      });
+    } catch (err) {
+      console.error('Load tickets error:', err);
+    }
+  }
+
+  function wireTicketForm(units) {
+    const ticketUnitSelect = document.getElementById('ticketUnit');
+    if (!ticketUnitSelect) return;
+
+    ticketUnitSelect.innerHTML = '<option value="" disabled selected>Select a unit</option>';
+    units.forEach((u) => {
+      const opt = document.createElement('option');
+      opt.value = u.unit_id;
+      opt.textContent = `${u.unit_code} – ${u.type_name}`;
+      ticketUnitSelect.appendChild(opt);
+    });
+
+    const ticketForm = document.getElementById('ticketForm');
+    const ticketMessageEl = document.getElementById('ticketMessage');
+
+    function setTicketMessage(text, type = 'info') {
+      if (!ticketMessageEl) return;
+      ticketMessageEl.style.display = 'block';
+      ticketMessageEl.className = `message-box ${type}`;
+      ticketMessageEl.textContent = text;
+    }
+
+    if (ticketForm) {
+      ticketForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const unit_id = ticketUnitSelect.value;
+        const ticket_type = document.getElementById('ticketType').value;
+        const title = document.getElementById('ticketTitle').value.trim();
+        const description = document.getElementById('ticketDesc').value.trim();
+
+        if (!unit_id || !title) {
+          setTicketMessage('Unit and title are required.', 'error');
+          return;
+        }
+
+        try {
+          await apiFetch('/api/tickets', {
+            method: 'POST',
+            body: JSON.stringify({ unit_id: Number(unit_id), ticket_type, title, description })
+          });
+          setTicketMessage('Ticket submitted!', 'success');
+          ticketForm.reset();
+          await loadMyTickets();
+        } catch (err) {
+          setTicketMessage(err.message, 'error');
+        }
+      });
     }
   }
 
@@ -644,6 +870,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         const user = me.user;
         if (user) {
           welcomeEl.textContent = `Welcome, ${user.first_name} ${user.last_name}`;
+          const fn = document.getElementById('profileFirstName');
+          if (fn) { fn.value = user.first_name; document.getElementById('profileLastName').value = user.last_name; document.getElementById('profileEmail').value = user.email; }
+          if (user.role_name === 'admin') {
+            const adminLink = document.getElementById('adminLink');
+            if (adminLink) adminLink.style.display = 'inline-block';
+          }
         } else {
           welcomeEl.textContent = 'Welcome, Guest';
         }
@@ -673,18 +905,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (reservationForm) {
       reservationForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const unit_id = Number(document.getElementById('unitId').value);
-        const check_in = document.getElementById('checkIn').value;
+        const msgEl = document.getElementById('reservationMessage');
+        const unit_id = Number(document.getElementById('quickUnitId').value);
+        const check_in  = document.getElementById('checkIn').value;
         const check_out = document.getElementById('checkOut').value;
-        const adults = Number(document.getElementById('adults').value) || 1;
+        const adults    = Number(document.getElementById('adults').value) || 1;
 
-        if (!unit_id || !check_in || !check_out) {
-          setDashboardMessage('Unit, check-in and check-out are required.', 'error');
-          return;
+        function setFormMsg(text, type) {
+          if (!msgEl) return;
+          msgEl.style.display = 'block';
+          msgEl.className = `message-box ${type}`;
+          msgEl.textContent = text;
         }
 
+        if (!unit_id || !check_in || !check_out) {
+          setFormMsg('Unit, check-in and check-out are required.', 'error');
+          return;
+        }
         if (new Date(check_in) >= new Date(check_out)) {
-          setDashboardMessage('Check-out must be after check-in.', 'error');
+          setFormMsg('Check-out must be after check-in.', 'error');
           return;
         }
 
@@ -693,16 +932,183 @@ document.addEventListener("DOMContentLoaded", async () => {
             method: 'POST',
             body: JSON.stringify({ unit_id, check_in, check_out, adults, children: 0 })
           });
-          setDashboardMessage('Reservation created successfully.', 'success');
+          setFormMsg('Reservation created! Switching to My Bookings…', 'success');
           reservationForm.reset();
           await loadReservations();
+          await loadInvoices();
+          setTimeout(() => { if (window.switchDashTab) window.switchDashTab('panel-bookings'); }, 900);
         } catch (error) {
-          setDashboardMessage(error.message, 'error');
+          setFormMsg(error.message, 'error');
         }
       });
     }
 
-    await loadUnits();
+    const units = await loadUnits();
+    wireTicketForm(units || []);
     await loadReservations();
+    await loadInvoices();
+    await loadMyTickets();
+
+    // Poll every 15 seconds so ticket status updates appear without refreshing
+    setInterval(loadMyTickets, 15000);
+
+    // ── Edit profile form ────────────────────────────────────────────────
+    const editProfileForm = document.getElementById('editProfileForm');
+    if (editProfileForm) {
+      editProfileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msgBox = document.getElementById('profileMessage');
+        const first_name = document.getElementById('profileFirstName').value.trim();
+        const last_name  = document.getElementById('profileLastName').value.trim();
+        const email      = document.getElementById('profileEmail').value.trim();
+        msgBox.style.display = 'none';
+        if (!first_name || !last_name || !email) {
+          msgBox.textContent = 'All fields are required.';
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+          return;
+        }
+        const btn = editProfileForm.querySelector('button[type="submit"]');
+        btn.disabled = true; btn.textContent = 'Saving...';
+        try {
+          const { user } = await apiFetch('/api/auth/profile', {
+            method: 'PATCH',
+            body: JSON.stringify({ first_name, last_name, email })
+          });
+          const welcomeEl = document.getElementById('welcomeText');
+          if (welcomeEl) welcomeEl.textContent = `Welcome, ${user.first_name} ${user.last_name}`;
+          msgBox.textContent = 'Profile updated successfully.';
+          msgBox.className = 'message-box success';
+          msgBox.style.display = 'block';
+        } catch (err) {
+          msgBox.textContent = err.message;
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+        } finally {
+          btn.disabled = false; btn.textContent = 'Save Changes';
+        }
+      });
+    }
+
+    // ── Review modal ──────────────────────────────────────────────────────
+    let _reviewReservationId = null;
+    let _reviewRating = 0;
+
+    function openReviewModal(reservation_id, unitLabel) {
+      _reviewReservationId = reservation_id;
+      _reviewRating = 0;
+      document.getElementById('reviewModalUnit').textContent = unitLabel;
+      document.getElementById('reviewComment').value = '';
+      document.getElementById('reviewMessage').style.display = 'none';
+      setStars(0);
+      const modal = document.getElementById('reviewModal');
+      modal.style.display = 'flex';
+    }
+
+    function setStars(n) {
+      _reviewRating = n;
+      document.querySelectorAll('#starPicker span').forEach((s, i) => {
+        s.textContent = i < n ? '★' : '☆';
+        s.style.color = i < n ? '#f59e0b' : '#d1d5db';
+      });
+    }
+
+    document.querySelectorAll('#starPicker span').forEach(s => {
+      s.addEventListener('click', () => setStars(Number(s.dataset.star)));
+      s.addEventListener('mouseover', () => {
+        document.querySelectorAll('#starPicker span').forEach((x, i) => {
+          x.textContent = i < Number(s.dataset.star) ? '★' : '☆';
+          x.style.color = i < Number(s.dataset.star) ? '#f59e0b' : '#d1d5db';
+        });
+      });
+      s.addEventListener('mouseout', () => setStars(_reviewRating));
+    });
+
+    document.getElementById('reviewCancelBtn').addEventListener('click', () => {
+      document.getElementById('reviewModal').style.display = 'none';
+    });
+
+    document.getElementById('reviewSubmitBtn').addEventListener('click', async () => {
+      const msgBox = document.getElementById('reviewMessage');
+      msgBox.style.display = 'none';
+      if (!_reviewRating) {
+        msgBox.textContent = 'Please select a star rating.';
+        msgBox.className = 'message-box error';
+        msgBox.style.display = 'block';
+        return;
+      }
+      const btn = document.getElementById('reviewSubmitBtn');
+      btn.disabled = true; btn.textContent = 'Submitting...';
+      try {
+        await apiFetch('/api/reviews', {
+          method: 'POST',
+          body: JSON.stringify({
+            reservation_id: _reviewReservationId,
+            rating: _reviewRating,
+            comment: document.getElementById('reviewComment').value.trim()
+          })
+        });
+        document.getElementById('reviewModal').style.display = 'none';
+        setDashboardMessage('Thanks for your review!', 'success');
+        await loadReservations();
+      } catch (err) {
+        msgBox.textContent = err.message;
+        msgBox.className = 'message-box error';
+        msgBox.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Submit Review';
+      }
+    });
+
+    // ── Password change form ─────────────────────────────────────────────
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    if (changePasswordForm) {
+      changePasswordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msgBox = document.getElementById('pwMessage');
+        const current_password = document.getElementById('currentPassword').value;
+        const new_password     = document.getElementById('newPassword').value;
+        const confirm_password = document.getElementById('confirmPassword').value;
+
+        msgBox.style.display = 'none';
+
+        if (!current_password || !new_password || !confirm_password) {
+          msgBox.textContent = 'All fields are required.';
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+          return;
+        }
+        if (new_password.length < 6) {
+          msgBox.textContent = 'New password must be at least 6 characters.';
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+          return;
+        }
+        if (new_password !== confirm_password) {
+          msgBox.textContent = 'New passwords do not match.';
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+          return;
+        }
+
+        const btn = changePasswordForm.querySelector('button[type="submit"]');
+        btn.disabled = true; btn.textContent = 'Updating...';
+        try {
+          await apiFetch('/api/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify({ current_password, new_password })
+          });
+          changePasswordForm.reset();
+          msgBox.textContent = 'Password updated successfully.';
+          msgBox.className = 'message-box success';
+          msgBox.style.display = 'block';
+        } catch (err) {
+          msgBox.textContent = err.message;
+          msgBox.className = 'message-box error';
+          msgBox.style.display = 'block';
+        } finally {
+          btn.disabled = false; btn.textContent = 'Update Password';
+        }
+      });
+    }
   }
 });

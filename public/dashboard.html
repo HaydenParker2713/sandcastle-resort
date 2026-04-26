@@ -3,95 +3,310 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Guest Dashboard - Sandcastle Resort</title>
+  <title>Dashboard – Sandcastle Resort</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <header class="container header">
-    <div class="brand">
-      <img src="/logo.svg" alt="Sandcastle Resort logo" class="logo" />
-      <div>
-        <h1>Guest Dashboard</h1>
-        <p id="welcomeText">Loading user...</p>
+
+  <!-- ── Sticky Nav ─────────────────────────────────────────────────────── -->
+  <nav class="dash-nav">
+    <div class="dash-nav-inner">
+      <a href="/" class="dash-brand">
+        <img src="/logo.svg" alt="logo" />
+        Sandcastle Resort
+      </a>
+      <div class="dash-user">
+        <span id="welcomeText" class="dash-user-name">Loading...</span>
+        <img id="profileAvatar" src="/avatar.svg" alt="avatar" class="avatar" />
+        <a id="adminLink" href="/admin" class="btn-secondary" style="display:none;font-size:13px;padding:7px 14px">Admin Panel</a>
+        <button id="logoutBtn" class="btn-ghost" style="font-size:13px;padding:7px 14px">Logout</button>
       </div>
     </div>
-    <div class="profile-area">
-      <img id="profileAvatar" src="/avatar.svg" alt="avatar" class="avatar" />
-      <button id="logoutBtn" class="btn-ghost">Logout</button>
+  </nav>
+
+  <main class="container" style="padding-top:10px;padding-bottom:40px">
+
+    <!-- ── Stats strip ──────────────────────────────────────────────────── -->
+    <div class="stat-strip" style="margin-top:18px" id="statStrip">
+      <div class="stat-tile">
+        <div class="num" id="statResCount">–</div>
+        <div class="lbl">Active Bookings</div>
+      </div>
+      <div class="stat-tile">
+        <div class="num" id="statNextCheckIn">–</div>
+        <div class="lbl">Next Check-in</div>
+      </div>
+      <div class="stat-tile">
+        <div class="num" id="statUnpaidCount">–</div>
+        <div class="lbl">Unpaid Invoices</div>
+      </div>
+      <div class="stat-tile">
+        <div class="num">28</div>
+        <div class="lbl">Resort Units</div>
+      </div>
     </div>
-  </header>
 
-  <main class="container">
-    <section class="card full" id="createReservationSection">
-      <h2>Create Reservation</h2>
-      <div id="reservationMessage" class="message-box" style="display:none; margin-bottom:12px"></div>
-      <form id="reservationForm" class="reservation-form">
-        <div class="form-field">
-          <label for="unitId">Unit</label>
-          <select id="unitId" required></select>
-        </div>
+    <!-- ── Tab Nav ──────────────────────────────────────────────────────── -->
+    <div class="dash-tabs">
+      <button class="dash-tab-btn active" data-panel="panel-browse">🏖️ Browse &amp; Book</button>
+      <button class="dash-tab-btn" data-panel="panel-bookings">📅 My Bookings <span id="bookingsBadge"></span></button>
+      <button class="dash-tab-btn" data-panel="panel-invoices">🧾 Invoices</button>
+      <button class="dash-tab-btn" data-panel="panel-tickets">🔧 Report Issue</button>
+      <button class="dash-tab-btn" data-panel="panel-account">⚙️ Account</button>
+    </div>
 
-        <div class="form-field">
-          <label for="checkIn">Check-in</label>
-          <input type="date" id="checkIn" required />
-        </div>
+    <!-- ══ Panel 1: Browse & Book ════════════════════════════════════════ -->
+    <div id="panel-browse" class="dash-panel active">
 
-        <div class="form-field">
-          <label for="checkOut">Check-out</label>
-          <input type="date" id="checkOut" required />
+      <!-- Room gallery -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="flex-between" style="margin-bottom:14px">
+          <h2 style="margin:0">Choose a Room</h2>
+          <span class="muted" style="font-size:13px">Click a unit to see availability</span>
         </div>
-
-        <div class="form-field">
-          <label for="adults">Adults</label>
-          <input type="number" id="adults" min="1" value="1" required />
-        </div>
-
-        <button type="submit" class="btn-primary">Book Reservation</button>
-      </form>
-    </section>
-
-    <section class="card full" id="calendarSection" style="display:none;">
-      <h2>Unit Availability</h2>
-      <div class="calendar-nav" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;flex-wrap:wrap;">
-        <div>
-          <button id="prevMonthBtn" class="btn-secondary" type="button">Previous</button>
-          <button id="nextMonthBtn" class="btn-secondary" type="button" style="margin-left: 8px;">Next</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <label for="yearFilterSelect" style="margin:0;font-weight:600;color:#0f766e;">Year:</label>
-          <select id="yearFilterSelect" class="btn-secondary" style="padding:8px 10px;border-radius:8px;outline:none;border:1px solid #e6eef5;">
-            <option value="">All years</option>
-          </select>
-        </div>
-        <div id="calendarMonthLabel" style="font-weight:700; color:#0f766e;"></div>
+        <div class="unit-gallery" id="roomGallery"></div>
+        <!-- hidden legacy select kept for JS logic -->
+        <select id="unitId" style="display:none"></select>
       </div>
-      <div id="unitCalendar"></div>
-      <div id="calendarSelectionInfo" style="margin-top: 16px; display: none;">
-        <p><strong>Selected range:</strong> <span id="selectedRangeText">None</span></p>
-        <button id="confirmReservationBtn" class="btn-primary">Confirm Reservation</button>
-        <button id="clearSelectionBtn" class="btn-secondary" type="button" style="margin-left: 10px;">Clear Selection</button>
-      </div>
-      <div style="margin-top: 16px; display:flex;justify-content:flex-end;">
-        <button id="clearFiltersBtn" class="btn-secondary" type="button">Remove filters</button>
-      </div>
-    </section>
 
-    <div class="dashboard-grid">
-      <section class="card full">
-        <h2>Room Gallery</h2>
-        <div class="gallery" id="roomGallery">
-          <!-- populated dynamically from /api/units -->
+      <!-- Unit detail + calendar (shown after selecting a unit) -->
+      <div id="unitDetails" style="display:none">
+        <!-- detail banner injected here by JS -->
+      </div>
+
+      <section id="calendarSection" style="display:none" class="card calendar-section-card">
+        <div class="calendar-nav-bar">
+          <div style="display:flex;gap:8px">
+            <button id="prevMonthBtn" class="btn-secondary" type="button" style="padding:7px 14px;font-size:13px">← Prev</button>
+            <button id="nextMonthBtn" class="btn-secondary" type="button" style="padding:7px 14px;font-size:13px">Next →</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <label for="yearFilterSelect" style="font-size:13px;font-weight:700;color:var(--accent-deep)">Year:</label>
+            <select id="yearFilterSelect" class="btn-secondary" style="padding:7px 10px;font-size:13px"></select>
+            <button id="clearFiltersBtn" class="btn-ghost" type="button" style="padding:7px 12px;font-size:13px">Reset</button>
+          </div>
+          <div id="calendarMonthLabel" class="calendar-month-label"></div>
         </div>
-        <div id="unitDetails" style="display:none; margin-top:20px;"></div>
+
+        <div class="cal-legend">
+          <span><span class="cal-legend-dot" style="background:#d1fae5;border:1px solid #10b981"></span>Available</span>
+          <span><span class="cal-legend-dot" style="background:#fee2e2;border:1px solid #f87171"></span>Booked</span>
+          <span><span class="cal-legend-dot" style="background:var(--accent)"></span>Selected</span>
+        </div>
+
+        <div id="unitCalendar"></div>
+
+        <div id="calendarSelectionInfo" style="display:none" class="selection-confirm-bar">
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:2px">Selected stay</div>
+            <div class="range-text" id="selectedRangeText">—</div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button id="clearSelectionBtn" class="btn-ghost" type="button">Clear</button>
+            <button id="confirmReservationBtn" class="btn-primary" disabled>Confirm Booking</button>
+          </div>
+        </div>
       </section>
 
-      <section class="card">
+      <!-- Quick manual booking form -->
+      <div class="card" style="margin-top:18px">
+        <h2>Quick Book</h2>
+        <p class="muted" style="font-size:13px;margin-bottom:16px">Or enter dates directly if you already know the unit.</p>
+        <div id="reservationMessage" class="message-box" style="display:none;margin-bottom:14px"></div>
+        <form id="reservationForm">
+          <div class="booking-form">
+            <div class="booking-form-field">
+              <label>Unit</label>
+              <select id="quickUnitId"></select>
+            </div>
+            <div class="booking-form-field">
+              <label>Check-in</label>
+              <input type="date" id="checkIn" required />
+            </div>
+            <div class="booking-form-field">
+              <label>Check-out</label>
+              <input type="date" id="checkOut" required />
+            </div>
+            <div class="booking-form-field">
+              <label>Adults</label>
+              <input type="number" id="adults" min="1" value="1" required />
+            </div>
+            <div class="booking-form-field" style="display:flex;align-items:flex-end">
+              <button type="submit" class="btn-primary" style="width:100%;padding:11px">Book Now</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+    </div><!-- /panel-browse -->
+
+    <!-- ══ Panel 2: My Bookings ══════════════════════════════════════════ -->
+    <div id="panel-bookings" class="dash-panel">
+      <div class="card" style="margin-bottom:18px">
         <h2>My Reservations</h2>
-        <div id="myReservations"></div>
-      </section>
+        <div id="myReservations">
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>No active reservations yet.<br>Head to Browse &amp; Book to get started.</p>
+          </div>
+        </div>
+      </div>
+      <!-- Review modal -->
+      <div id="reviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:14px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+          <h3 style="margin:0 0 6px;color:#0c4a4a">Leave a Review</h3>
+          <p id="reviewModalUnit" class="muted" style="font-size:13px;margin-bottom:16px"></p>
+          <div id="reviewMessage" class="message-box" style="display:none;margin-bottom:12px"></div>
+          <div style="margin-bottom:14px">
+            <label style="font-size:13px;font-weight:600;color:#0c4a4a;display:block;margin-bottom:6px">Rating</label>
+            <div id="starPicker" style="display:flex;gap:6px;font-size:2rem;cursor:pointer">
+              <span data-star="1">☆</span><span data-star="2">☆</span><span data-star="3">☆</span><span data-star="4">☆</span><span data-star="5">☆</span>
+            </div>
+          </div>
+          <div style="margin-bottom:18px">
+            <label style="font-size:13px;font-weight:600;color:#0c4a4a;display:block;margin-bottom:6px">Comment (optional)</label>
+            <textarea id="reviewComment" rows="3" placeholder="How was your stay?" style="width:100%;padding:10px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box"></textarea>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button id="reviewCancelBtn" class="btn-ghost">Cancel</button>
+            <button id="reviewSubmitBtn" class="btn-primary">Submit Review</button>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- ══ Panel 3: Invoices ══════════════════════════════════════════════ -->
+    <div id="panel-invoices" class="dash-panel">
+      <div class="card">
+        <h2>My Invoices</h2>
+        <div id="myInvoices">
+          <div class="empty-state">
+            <div class="empty-icon">🧾</div>
+            <p>No invoices yet.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Panel 4: Report Issue ══════════════════════════════════════════ -->
+    <div id="panel-tickets" class="dash-panel">
+      <div class="card" style="margin-bottom:18px">
+        <h2>Report a Maintenance or Housekeeping Issue</h2>
+        <p class="muted" style="font-size:13px;margin-bottom:18px">Our team will be notified. Your submitted tickets appear below instantly.</p>
+        <div id="ticketMessage" class="message-box" style="display:none;margin-bottom:16px"></div>
+        <form id="ticketForm">
+          <div class="ticket-form">
+            <div class="ticket-form-field">
+              <label>Unit</label>
+              <select id="ticketUnit" required></select>
+            </div>
+            <div class="ticket-form-field">
+              <label>Issue Type</label>
+              <select id="ticketType" required>
+                <option value="maintenance">🔧 Maintenance</option>
+                <option value="housekeeping">🧹 Housekeeping</option>
+              </select>
+            </div>
+            <div class="ticket-form-field full">
+              <label>Title</label>
+              <input type="text" id="ticketTitle" placeholder="e.g. Broken AC, needs towels" required />
+            </div>
+            <div class="ticket-form-field full">
+              <label>Additional Details</label>
+              <textarea id="ticketDesc" rows="3" placeholder="Optional — describe the issue in more detail"></textarea>
+            </div>
+            <div class="ticket-form-field full">
+              <button type="submit" class="btn-primary" style="padding:12px 28px">Submit Ticket</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="flex-between" style="margin-bottom:14px">
+          <h2 style="margin:0">My Submitted Tickets</h2>
+          <span id="ticketLiveIndicator" style="font-size:12px;color:var(--muted)">● live</span>
+        </div>
+        <div id="myTickets">
+          <div class="empty-state"><div class="empty-icon">🎫</div><p>No tickets submitted yet.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Panel 5: Account ═════════════════════════════════════════════════ -->
+    <div id="panel-account" class="dash-panel">
+      <div class="card" style="max-width:480px;margin-bottom:18px">
+        <h2>Edit Profile</h2>
+        <p class="muted" style="font-size:13px;margin-bottom:18px">Update your display name or email address.</p>
+        <div id="profileMessage" class="message-box" style="display:none;margin-bottom:14px"></div>
+        <form id="editProfileForm">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">First Name</label>
+                <input type="text" id="profileFirstName" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+              </div>
+              <div>
+                <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">Last Name</label>
+                <input type="text" id="profileLastName" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+              </div>
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">Email</label>
+              <input type="email" id="profileEmail" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+            </div>
+            <button type="submit" class="btn-primary" style="padding:12px 28px;align-self:flex-start">Save Changes</button>
+          </div>
+        </form>
+      </div>
+      <div class="card" style="max-width:480px">
+        <h2>Change Password</h2>
+        <p class="muted" style="font-size:13px;margin-bottom:18px">Update your account password. You'll need your current password to confirm.</p>
+        <div id="pwMessage" class="message-box" style="display:none;margin-bottom:14px"></div>
+        <form id="changePasswordForm">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div>
+              <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">Current Password</label>
+              <input type="password" id="currentPassword" placeholder="Enter current password" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">New Password</label>
+              <input type="password" id="newPassword" placeholder="At least 6 characters" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:5px">Confirm New Password</label>
+              <input type="password" id="confirmPassword" placeholder="Repeat new password" style="width:100%;padding:10px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box" />
+            </div>
+            <button type="submit" class="btn-primary" style="padding:12px 28px;align-self:flex-start">Update Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </main>
 
+  <footer class="container">
+    &copy; 2026 Sandcastle Resort &nbsp;·&nbsp; <a href="/">Back to Home</a>
+  </footer>
+
   <script src="/app.js"></script>
+  <script>
+    // Tab switching
+    document.querySelectorAll('.dash-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.dash-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.dash-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.panel).classList.add('active');
+      });
+    });
+    // Expose tab switcher for app.js to use
+    window.switchDashTab = (panelId) => {
+      document.querySelectorAll('.dash-tab-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.panel === panelId));
+      document.querySelectorAll('.dash-panel').forEach(p =>
+        p.classList.toggle('active', p.id === panelId));
+    };
+  </script>
 </body>
 </html>

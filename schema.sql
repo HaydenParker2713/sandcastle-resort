@@ -65,11 +65,47 @@ CREATE TABLE units (
 );
 
 INSERT INTO units (unit_type_id, unit_code, status) VALUES
+-- Studio (type 1)
 (1, 'A101', 'available'),
 (1, 'A102', 'available'),
+(1, 'A103', 'available'),
+-- One Bedroom Suite (type 2)
 (2, 'B201', 'available'),
 (2, 'B202', 'maintenance'),
-(3, 'C301', 'available');
+(2, 'B203', 'available'),
+-- Two Bedroom Suite (type 3)
+(3, 'C301', 'available'),
+(3, 'C302', 'available'),
+-- Oceanfront Suite with Balcony (type 4)
+(4, 'D101', 'available'),
+(4, 'D102', 'available'),
+-- Oceanfront Studio with Balcony (type 5)
+(5, 'D201', 'available'),
+(5, 'D202', 'available'),
+-- Poolside Suite with Balcony (type 6)
+(6, 'E101', 'available'),
+(6, 'E102', 'available'),
+-- Poolside Studio with Balcony (type 7)
+(7, 'E201', 'available'),
+(7, 'E202', 'available'),
+-- Standard Suite - Main Building (type 8)
+(8, 'F101', 'available'),
+(8, 'F102', 'available'),
+-- Standard Studio - Main Building (type 9)
+(9, 'F201', 'available'),
+(9, 'F202', 'available'),
+-- Queen Suite with Balcony - Main Building (type 10)
+(10, 'F301', 'available'),
+(10, 'F302', 'available'),
+-- Standard Studio with Balcony - Main Building (type 11)
+(11, 'F401', 'available'),
+(11, 'F402', 'available'),
+-- Small Suite with Balcony (type 12)
+(12, 'G101', 'available'),
+(12, 'G102', 'available'),
+-- Standard Studio with Balcony - Pool Building (type 13)
+(13, 'G201', 'available'),
+(13, 'G202', 'available');
 
 CREATE TABLE reservations (
   reservation_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -135,5 +171,5 @@ VALUES (
   'Admin',
   'User',
   'admin@sandcastle.com',
-  '$2b$10$2S6q1I5jBqoQ4rb6mWtpYeu5t7S7hWqjS9tQn3NfG9EkWwH1k1VwK'
+  '$2b$10$Ih5lWmeISCpPycyeUvBza.nQnu9OY.qI7j1uhgb0YvqHtMwrYcQ6y'
 );

@@ -56,4 +56,20 @@ router.get("/:id/availability", async (req, res) => {
   }
 });
 
+router.patch("/:id/status", requireRole("admin"), async (req, res) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ["available", "maintenance", "inactive"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status." });
+    }
+    const ok = await unitService.updateUnitStatus(req.params.id, status);
+    if (!ok) return res.status(404).json({ error: "Unit not found." });
+    res.json({ message: "Unit status updated." });
+  } catch (error) {
+    console.error("Update unit status error:", error);
+    res.status(500).json({ error: "Server error updating unit status." });
+  }
+});
+
 module.exports = router;

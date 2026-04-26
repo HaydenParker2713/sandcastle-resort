@@ -1,6 +1,8 @@
 const express = require("express");
 const createServices = require("../services");
 const { pool } = require("../config/db");
+const { requireAuth } = require("../middleware/auth");
+const { sendPasswordChangedNotice } = require("../utils/email");
 const { authService } = createServices(pool);
 
 const router = express.Router();
@@ -87,8 +89,54 @@ router.get("/me", (req, res) => {
   if (!req.session.user) {
     return res.status(200).json({ user: null });
   }
-
   res.json({ user: req.session.user });
+});
+
+router.patch("/profile", requireAuth, async (req, res) => {
+  try {
+    const { first_name, last_name, email } = req.body;
+    if (!first_name || !last_name || !email) {
+      return res.status(400).json({ error: 'All fields are required.' });
+    }
+    const updated = await authService.updateProfile(req.session.user.user_id, { first_name, last_name, email });
+    req.session.user = { ...req.session.user, first_name: updated.first_name, last_name: updated.last_name, email: updated.email };
+    res.json({ message: 'Profile updated.', user: req.session.user });
+  } catch (err) {
+    if (err.code === 'EMAIL_TAKEN') return res.status(409).json({ error: err.message });
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Server error updating profile.' });
+  }
+});
+
+router.post("/change-password", requireAuth, async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    if (!current_password || !new_password) {
+      return res.status(400).json({ error: "Both current and new password are required." });
+    }
+    if (new_password.length < 6) {
+      return res.status(400).json({ error: "New password must be at least 6 characters." });
+    }
+
+    const user = await authService.findByEmail(req.session.user.email);
+    const match = await authService.verifyPassword(current_password, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ error: "Current password is incorrect." });
+    }
+
+    await authService.changePassword(req.session.user.user_id, new_password);
+
+    // Fire-and-forget security notice email
+    sendPasswordChangedNotice({
+      to: user.email,
+      firstName: user.first_name
+    });
+
+    res.json({ message: "Password updated successfully." });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ error: "Server error changing password." });
+  }
 });
 
 module.exports = router;

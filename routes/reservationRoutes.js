@@ -1,12 +1,22 @@
 const express = require('express');
 const { pool } = require('../config/db');
 const createServices = require('../services');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
+const { sendBookingConfirmation } = require('../utils/email');
 
 const router = express.Router();
 const { reservationService } = createServices(pool);
 
-// Create a reservation (authenticated users)
+router.get('/', requireRole('admin', 'staff'), async (req, res) => {
+  try {
+    const rows = await reservationService.getAllReservations();
+    res.json(rows);
+  } catch (err) {
+    console.error('Get all reservations error:', err);
+    res.status(500).json({ error: 'Server error fetching reservations.' });
+  }
+});
+
 router.post('/', requireAuth, async (req, res) => {
   try {
     const user_id = req.session.user.user_id;
@@ -26,13 +36,32 @@ router.post('/', requireAuth, async (req, res) => {
     });
 
     res.status(201).json({ message: 'Reservation created.', reservation_id: reservationId });
+
+    // Fire-and-forget confirmation email
+    reservationService.getReservationById(reservationId).then(details => {
+      if (!details) return;
+      const nights = Math.round((new Date(details.check_out) - new Date(details.check_in)) / 86400000);
+      sendBookingConfirmation({
+        to: details.email,
+        firstName: details.first_name,
+        unitCode: details.unit_code,
+        typeName: details.type_name,
+        checkIn: details.check_in,
+        checkOut: details.check_out,
+        nights,
+        totalAmount: details.total_amount,
+        reservationId
+      });
+    }).catch(() => {});
   } catch (err) {
+    if (err && err.code === 'DOUBLE_BOOKING') {
+      return res.status(409).json({ error: err.message });
+    }
     console.error('Create reservation error:', err);
     res.status(500).json({ error: 'Server error creating reservation.' });
   }
 });
 
-// Get my reservations
 router.get('/mine', requireAuth, async (req, res) => {
   try {
     const user_id = req.session.user.user_id;
@@ -44,7 +73,6 @@ router.get('/mine', requireAuth, async (req, res) => {
   }
 });
 
-// Cancel a reservation
 router.post('/:id/cancel', requireAuth, async (req, res) => {
   try {
     const user_id = req.session.user.user_id;
