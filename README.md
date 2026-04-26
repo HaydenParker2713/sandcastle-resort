@@ -23,3 +23,21 @@ This is Phase 1 of the Sandcastle Resort Database-Driven Web Application capston
 ### 1. Install dependencies
 ```bash
 npm install
+```
+
+### 2. Configure environment
+```bash
+cp .env.example .env
+```
+Fill in your database credentials in `.env`.
+
+### 3. Set up the database
+Import `schema.sql` into your MySQL instance:
+```bash
+mysql -u root -p sandcastle_resort < schema.sql
+```
+
+### 4. Start the server
+```bash
+node server.js
+```
