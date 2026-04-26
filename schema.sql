@@ -1,0 +1,139 @@
+DROP DATABASE IF EXISTS sandcastle_resort;
+CREATE DATABASE sandcastle_resort;
+USE sandcastle_resort;
+
+CREATE TABLE roles (
+  role_id TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  role_name VARCHAR(20) NOT NULL,
+  PRIMARY KEY (role_id),
+  UNIQUE KEY uq_role_name (role_name)
+);
+
+INSERT INTO roles (role_name) VALUES ('guest'), ('staff'), ('admin');
+
+CREATE TABLE users (
+  user_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  role_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id),
+  UNIQUE KEY uq_users_email (email),
+  CONSTRAINT fk_users_role
+    FOREIGN KEY (role_id) REFERENCES roles(role_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+);
+
+CREATE TABLE unit_types (
+  unit_type_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  type_name VARCHAR(50) NOT NULL,
+  capacity INT NOT NULL,
+  nightly_rate DECIMAL(10,2) NOT NULL,
+  PRIMARY KEY (unit_type_id),
+  UNIQUE KEY uq_unit_type_name (type_name)
+);
+
+INSERT INTO unit_types (type_name, capacity, nightly_rate) VALUES
+('Studio', 2, 149.00),
+('One Bedroom Suite', 4, 229.00),
+('Two Bedroom Suite', 6, 329.00),
+('Oceanfront Suite with Balcony', 4, 349.00),
+('Oceanfront Studio with Balcony', 2, 199.00),
+('Poolside Suite with Balcony', 4, 279.00),
+('Poolside Studio with Balcony', 2, 169.00),
+('Standard Suite - Main Building', 4, 219.00),
+('Standard Studio - Main Building', 2, 139.00),
+('Queen Suite with Balcony - Main Building', 4, 239.00),
+('Standard Studio with Balcony - Main Building', 2, 149.00),
+('Small Suite with Balcony', 3, 199.00),
+('Standard Studio with Balcony - Pool Building', 2, 159.00);
+
+CREATE TABLE units (
+  unit_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  unit_type_id INT UNSIGNED NOT NULL,
+  unit_code VARCHAR(20) NOT NULL,
+  status ENUM('available', 'maintenance', 'inactive') NOT NULL DEFAULT 'available',
+  PRIMARY KEY (unit_id),
+  UNIQUE KEY uq_unit_code (unit_code),
+  CONSTRAINT fk_units_type
+    FOREIGN KEY (unit_type_id) REFERENCES unit_types(unit_type_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+);
+
+INSERT INTO units (unit_type_id, unit_code, status) VALUES
+(1, 'A101', 'available'),
+(1, 'A102', 'available'),
+(2, 'B201', 'available'),
+(2, 'B202', 'maintenance'),
+(3, 'C301', 'available');
+
+CREATE TABLE reservations (
+  reservation_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  unit_id BIGINT UNSIGNED NOT NULL,
+  check_in DATE NOT NULL,
+  check_out DATE NOT NULL,
+  adults INT NOT NULL DEFAULT 1,
+  children INT NOT NULL DEFAULT 0,
+  status ENUM('confirmed', 'cancelled') NOT NULL DEFAULT 'confirmed',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (reservation_id),
+  CONSTRAINT fk_res_user
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_res_unit
+    FOREIGN KEY (unit_id) REFERENCES units(unit_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT chk_dates CHECK (check_out > check_in)
+);
+
+CREATE TABLE invoices (
+  invoice_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  reservation_id BIGINT UNSIGNED NOT NULL,
+  total_amount DECIMAL(10,2) NOT NULL,
+  status ENUM('unpaid', 'paid') NOT NULL DEFAULT 'unpaid',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (invoice_id),
+  UNIQUE KEY uq_invoice_reservation (reservation_id),
+  CONSTRAINT fk_invoice_reservation
+    FOREIGN KEY (reservation_id) REFERENCES reservations(reservation_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+);
+
+CREATE TABLE tickets (
+  ticket_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  unit_id BIGINT UNSIGNED NOT NULL,
+  created_by BIGINT UNSIGNED NOT NULL,
+  ticket_type ENUM('maintenance', 'housekeeping') NOT NULL,
+  title VARCHAR(150) NOT NULL,
+  description TEXT,
+  status ENUM('open', 'in_progress', 'closed') NOT NULL DEFAULT 'open',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (ticket_id),
+  CONSTRAINT fk_ticket_unit
+    FOREIGN KEY (unit_id) REFERENCES units(unit_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_ticket_user
+    FOREIGN KEY (created_by) REFERENCES users(user_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+);
+
+-- Optional demo admin
+-- password: Admin123!
+INSERT INTO users (role_id, first_name, last_name, email, password_hash)
+VALUES (
+  3,
+  'Admin',
+  'User',
+  'admin@sandcastle.com',
+  '$2b$10$2S6q1I5jBqoQ4rb6mWtpYeu5t7S7hWqjS9tQn3NfG9EkWwH1k1VwK'
+);

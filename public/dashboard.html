@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guest Dashboard - Sandcastle Resort</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="container header">
+    <div class="brand">
+      <img src="/logo.svg" alt="Sandcastle Resort logo" class="logo" />
+      <div>
+        <h1>Guest Dashboard</h1>
+        <p id="welcomeText">Loading user...</p>
+      </div>
+    </div>
+    <div class="profile-area">
+      <img id="profileAvatar" src="/avatar.svg" alt="avatar" class="avatar" />
+      <button id="logoutBtn" class="btn-ghost">Logout</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card full" id="createReservationSection">
+      <h2>Create Reservation</h2>
+      <div id="reservationMessage" class="message-box" style="display:none; margin-bottom:12px"></div>
+      <form id="reservationForm" class="reservation-form">
+        <div class="form-field">
+          <label for="unitId">Unit</label>
+          <select id="unitId" required></select>
+        </div>
+
+        <div class="form-field">
+          <label for="checkIn">Check-in</label>
+          <input type="date" id="checkIn" required />
+        </div>
+
+        <div class="form-field">
+          <label for="checkOut">Check-out</label>
+          <input type="date" id="checkOut" required />
+        </div>
+
+        <div class="form-field">
+          <label for="adults">Adults</label>
+          <input type="number" id="adults" min="1" value="1" required />
+        </div>
+
+        <button type="submit" class="btn-primary">Book Reservation</button>
+      </form>
+    </section>
+
+    <section class="card full" id="calendarSection" style="display:none;">
+      <h2>Unit Availability</h2>
+      <div class="calendar-nav" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;flex-wrap:wrap;">
+        <div>
+          <button id="prevMonthBtn" class="btn-secondary" type="button">Previous</button>
+          <button id="nextMonthBtn" class="btn-secondary" type="button" style="margin-left: 8px;">Next</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <label for="yearFilterSelect" style="margin:0;font-weight:600;color:#0f766e;">Year:</label>
+          <select id="yearFilterSelect" class="btn-secondary" style="padding:8px 10px;border-radius:8px;outline:none;border:1px solid #e6eef5;">
+            <option value="">All years</option>
+          </select>
+        </div>
+        <div id="calendarMonthLabel" style="font-weight:700; color:#0f766e;"></div>
+      </div>
+      <div id="unitCalendar"></div>
+      <div id="calendarSelectionInfo" style="margin-top: 16px; display: none;">
+        <p><strong>Selected range:</strong> <span id="selectedRangeText">None</span></p>
+        <button id="confirmReservationBtn" class="btn-primary">Confirm Reservation</button>
+        <button id="clearSelectionBtn" class="btn-secondary" type="button" style="margin-left: 10px;">Clear Selection</button>
+      </div>
+      <div style="margin-top: 16px; display:flex;justify-content:flex-end;">
+        <button id="clearFiltersBtn" class="btn-secondary" type="button">Remove filters</button>
+      </div>
+    </section>
+
+    <div class="dashboard-grid">
+      <section class="card full">
+        <h2>Room Gallery</h2>
+        <div class="gallery" id="roomGallery">
+          <!-- populated dynamically from /api/units -->
+        </div>
+        <div id="unitDetails" style="display:none; margin-top:20px;"></div>
+      </section>
+
+      <section class="card">
+        <h2>My Reservations</h2>
+        <div id="myReservations"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

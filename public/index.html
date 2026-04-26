@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sandcastle Resort</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="container header">
+    <div class="brand">
+      <img src="/logo.svg" alt="Sandcastle Resort logo" class="logo" />
+      <div>
+        <h1>Sandcastle Resort</h1>
+        <p class="muted">Welcome to our demo booking app</p>
+      </div>
+    </div>
+    <div class="profile-preview">
+      <img src="/avatar.svg" alt="avatar" class="avatar small" />
+    </div>
+  </header>
+
+  <main class="container auth-grid">
+    <section class="card auth-card">
+      <h2>Login</h2>
+      <form id="loginForm" class="form">
+        <div class="input-group">
+          <img src="/login-icon.svg" class="input-icon" alt="email" />
+          <input type="email" id="loginEmail" placeholder="Email" required />
+        </div>
+        <div class="input-group">
+          <img src="/login-icon.svg" class="input-icon" alt="password" />
+          <input type="password" id="loginPassword" placeholder="Password" required />
+        </div>
+        <button type="submit" class="btn-primary">Login</button>
+      </form>
+    </section>
+
+    <section class="card auth-card">
+      <h2>Create an Account</h2>
+      <form id="registerForm" class="form">
+        <div class="input-group">
+          <input type="text" id="regFirstName" placeholder="First name" required />
+        </div>
+        <div class="input-group">
+          <input type="text" id="regLastName" placeholder="Last name" required />
+        </div>
+        <div class="input-group">
+          <input type="email" id="regEmail" placeholder="Email" required />
+        </div>
+        <div class="input-group">
+          <input type="password" id="regPassword" placeholder="Password" required />
+        </div>
+        <button type="submit" class="btn-secondary">Create Account</button>
+      </form>
+    </section>
+
+    <section class="card full">
+      <h2>Message Log</h2>
+      <div id="messageBox" class="message-box">System ready.</div>
+    </section>
+  </main>
+
+  <footer class="container muted center">Demo app — not for production use</footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
