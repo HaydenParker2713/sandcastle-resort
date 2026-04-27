@@ -1,16 +1,3 @@
-// ── Utilities ──────────────────────────────────────────────────────────────
-async function apiFetch(url, options = {}) {
-  const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    ...options
-  });
-  let data = {};
-  try { data = await res.json(); } catch { throw new Error('Invalid server response.'); }
-  if (!res.ok) throw new Error(data.error || 'Request failed.');
-  return data;
-}
-
 // ── Room card gradients by keyword ────────────────────────────────────────
 function roomGradient(typeName) {
   const t = typeName.toLowerCase();
@@ -164,8 +151,8 @@ document.getElementById('registerSubmitBtn').addEventListener('click', async () 
   if (!first_name || !last_name || !email || !password) {
     showModalError('registerPanel', 'All fields are required.'); return;
   }
-  if (password.length < 6) {
-    showModalError('registerPanel', 'Password must be at least 6 characters.'); return;
+  if (password.length < 8) {
+    showModalError('registerPanel', 'Password must be at least 8 characters.'); return;
   }
 
   const btn = document.getElementById('registerSubmitBtn');
@@ -203,9 +190,6 @@ document.getElementById('navLoginBtn').addEventListener('click', () => openModal
 document.getElementById('navBookBtn').addEventListener('click', requireAuthThenBook);
 document.getElementById('heroBookBtn').addEventListener('click', () => {
   document.getElementById('roomsSection').scrollIntoView({ behavior: 'smooth' });
-});
-document.getElementById('heroLearnBtn').addEventListener('click', () => {
-  document.querySelector('.features').scrollIntoView({ behavior: 'smooth' });
 });
 
 // ── Init ───────────────────────────────────────────────────────────────────

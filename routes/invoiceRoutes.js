@@ -1,10 +1,8 @@
 const express = require('express');
-const { pool } = require('../config/db');
-const createServices = require('../services');
+const { invoiceService } = require('../services');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
-const { invoiceService } = createServices(pool);
 
 router.get('/mine', requireAuth, async (req, res) => {
   try {
@@ -28,7 +26,10 @@ router.get('/', requireRole('admin'), async (req, res) => {
 
 router.post('/:id/pay', requireRole('admin'), async (req, res) => {
   try {
-    const ok = await invoiceService.markInvoicePaid(req.params.id);
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid invoice ID.' });
+
+    const ok = await invoiceService.markInvoicePaid(id);
     if (!ok) return res.status(404).json({ error: 'Invoice not found.' });
     res.json({ message: 'Invoice marked as paid.' });
   } catch (err) {

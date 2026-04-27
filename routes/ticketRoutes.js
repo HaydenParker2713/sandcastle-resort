@@ -1,10 +1,8 @@
 const express = require('express');
-const { pool } = require('../config/db');
-const createServices = require('../services');
+const { ticketService } = require('../services');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
-const { ticketService } = createServices(pool);
 
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -15,6 +13,9 @@ router.post('/', requireAuth, async (req, res) => {
     const validTypes = ['maintenance', 'housekeeping'];
     if (!validTypes.includes(ticket_type)) {
       return res.status(400).json({ error: 'ticket_type must be maintenance or housekeeping.' });
+    }
+    if (title.length > 150) {
+      return res.status(400).json({ error: 'Title must be 150 characters or fewer.' });
     }
     const ticket_id = await ticketService.createTicket({
       unit_id: Number(unit_id),
@@ -45,12 +46,15 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.patch('/:id', requireRole('admin', 'staff'), async (req, res) => {
   try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ticket ID.' });
+
     const { status } = req.body;
     const validStatuses = ['open', 'in_progress', 'closed'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid status.' });
     }
-    const ok = await ticketService.updateTicketStatus(req.params.id, status);
+    const ok = await ticketService.updateTicketStatus(id, status);
     if (!ok) return res.status(404).json({ error: 'Ticket not found.' });
     res.json({ message: 'Ticket updated.' });
   } catch (err) {

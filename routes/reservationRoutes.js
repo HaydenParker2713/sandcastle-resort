@@ -1,11 +1,9 @@
 const express = require('express');
-const { pool } = require('../config/db');
-const createServices = require('../services');
+const { reservationService } = require('../services');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { sendBookingConfirmation } = require('../utils/email');
 
 const router = express.Router();
-const { reservationService } = createServices(pool);
 
 router.get('/', requireRole('admin', 'staff'), async (req, res) => {
   try {
@@ -28,10 +26,10 @@ router.post('/', requireAuth, async (req, res) => {
 
     const reservationId = await reservationService.createReservation({
       user_id,
-      unit_id: Number(unit_id),
+      unit_id:  Number(unit_id),
       check_in,
       check_out,
-      adults: Number(adults) || 1,
+      adults:   Number(adults) || 1,
       children: Number(children) || 0
     });
 
@@ -41,18 +39,18 @@ router.post('/', requireAuth, async (req, res) => {
     reservationService.getReservationById(reservationId).then(details => {
       if (!details) return;
       const nights = Math.round((new Date(details.check_out) - new Date(details.check_in)) / 86400000);
-      sendBookingConfirmation({
-        to: details.email,
-        firstName: details.first_name,
-        unitCode: details.unit_code,
-        typeName: details.type_name,
-        checkIn: details.check_in,
-        checkOut: details.check_out,
+      return sendBookingConfirmation({
+        to:            details.email,
+        firstName:     details.first_name,
+        unitCode:      details.unit_code,
+        typeName:      details.type_name,
+        checkIn:       details.check_in,
+        checkOut:      details.check_out,
         nights,
-        totalAmount: details.total_amount,
+        totalAmount:   details.total_amount,
         reservationId
       });
-    }).catch(() => {});
+    }).catch(err => console.error('Confirmation email failed:', err.message));
   } catch (err) {
     if (err && err.code === 'DOUBLE_BOOKING') {
       return res.status(409).json({ error: err.message });

@@ -1,14 +1,17 @@
-async function apiFetch(url, options = {}) {
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    ...options
-  });
-  let data = {};
-  try { data = await response.json(); } catch { throw new Error('Server returned an invalid response.'); }
-  if (!response.ok) throw new Error(data.error || 'Request failed.');
-  return data;
-}
+(function initAdminTheme() {
+  const theme = localStorage.getItem('sc_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+})();
+
+document.getElementById('themeToggleBtn').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sc_theme', next);
+  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+});
 
 function showMessage(text, type = 'success') {
   const el = document.getElementById('adminMessage');
@@ -373,3 +376,131 @@ async function init() {
 }
 
 init();
+
+/* ── Bar & Dining management ─────────────────────────────────────────────── */
+async function loadBarItems() {
+  const el = document.getElementById('barList');
+  if (!el) return;
+  try {
+    const items = await apiFetch('/api/bar');
+    if (!items.length) { el.innerHTML = '<p class="muted" style="font-size:14px">No items yet.</p>'; return; }
+
+    const byCategory = {};
+    items.forEach(item => {
+      if (!byCategory[item.category]) byCategory[item.category] = [];
+      byCategory[item.category].push(item);
+    });
+
+    el.innerHTML = Object.entries(byCategory).map(([cat, catItems]) => `
+      <div style="margin-bottom:22px">
+        <div class="list-category-header">${cat}</div>
+        ${catItems.map(item => `
+          <div class="admin-list-row">
+            <div style="flex:1;min-width:0">
+              <span class="list-item-name">${item.name}</span>
+              ${item.description ? `<span class="list-item-desc">${item.description}</span>` : ''}
+            </div>
+            <span class="list-item-price">${item.price != null ? '$' + Number(item.price).toFixed(2) : '—'}</span>
+            <button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5;flex-shrink:0" onclick="deleteBarItem(${item.item_id})">Delete</button>
+          </div>`).join('')}
+      </div>`).join('');
+  } catch { el.innerHTML = '<p class="muted">Could not load menu.</p>'; }
+}
+
+window.deleteBarItem = async (id) => {
+  if (!confirm('Delete this menu item?')) return;
+  try {
+    await apiFetch(`/api/bar/${id}`, { method: 'DELETE' });
+    showMessage('Item deleted.');
+    loadBarItems();
+  } catch (err) { showMessage(err.message, 'error'); }
+};
+
+document.getElementById('barForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    await apiFetch('/api/bar', {
+      method: 'POST',
+      body: JSON.stringify({
+        category:    document.getElementById('barCategory').value.trim(),
+        name:        document.getElementById('barName').value.trim(),
+        description: document.getElementById('barDesc').value.trim(),
+        price:       document.getElementById('barPrice').value || null
+      })
+    });
+    showMessage('Menu item added.');
+    e.target.reset();
+    loadBarItems();
+  } catch (err) {
+    showMessage(err.message, 'error');
+  } finally { btn.disabled = false; }
+});
+
+/* ── Activities management ───────────────────────────────────────────────── */
+async function loadActivityItems() {
+  const el = document.getElementById('actList');
+  if (!el) return;
+  try {
+    const items = await apiFetch('/api/activity-items');
+    if (!items.length) { el.innerHTML = '<p class="muted" style="font-size:14px">No activities yet.</p>'; return; }
+    el.innerHTML = items.map(item => {
+      const tags = (item.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+      const tagHtml = tags.map(t => {
+        const cls = /free|included/i.test(t) ? 'list-tag-free' : /\$|per /i.test(t) ? 'list-tag-paid' : 'list-tag-default';
+        return `<span class="list-tag ${cls}">${t}</span>`;
+      }).join('');
+      return `
+        <div class="admin-list-row" style="align-items:flex-start">
+          <div class="list-item-icon">${item.icon || '🏄'}</div>
+          <div style="flex:1;min-width:0">
+            <span class="list-item-name">${item.name}</span>
+            ${item.description ? `<span class="list-item-desc">${item.description}</span>` : ''}
+            ${tagHtml ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${tagHtml}</div>` : ''}
+          </div>
+          <button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5;flex-shrink:0" onclick="deleteActivityItem(${item.activity_id})">Delete</button>
+        </div>`;
+    }).join('');
+  } catch { el.innerHTML = '<p class="muted">Could not load activities.</p>'; }
+}
+
+window.deleteActivityItem = async (id) => {
+  if (!confirm('Delete this activity?')) return;
+  try {
+    await apiFetch(`/api/activity-items/${id}`, { method: 'DELETE' });
+    showMessage('Activity deleted.');
+    loadActivityItems();
+  } catch (err) { showMessage(err.message, 'error'); }
+};
+
+document.getElementById('actForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    await apiFetch('/api/activity-items', {
+      method: 'POST',
+      body: JSON.stringify({
+        icon:        document.getElementById('actIcon').value.trim() || '🏄',
+        name:        document.getElementById('actName').value.trim(),
+        description: document.getElementById('actDesc').value.trim(),
+        tags:        document.getElementById('actTags').value.trim()
+      })
+    });
+    showMessage('Activity added.');
+    e.target.reset();
+    loadActivityItems();
+  } catch (err) {
+    showMessage(err.message, 'error');
+  } finally { btn.disabled = false; }
+});
+
+// Load bar/activity data when their tabs are first opened
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    if (tab === 'bar' && !btn._loaded)        { loadBarItems();      btn._loaded = true; }
+    if (tab === 'activitylist' && !btn._loaded) { loadActivityItems(); btn._loaded = true; }
+  });
+});

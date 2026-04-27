@@ -1,10 +1,8 @@
 const express = require('express');
-const { pool } = require('../config/db');
-const createServices = require('../services');
+const { reviewService, reservationService } = require('../services');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
-const { reviewService, reservationService } = createServices(pool);
 
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -17,13 +15,12 @@ router.post('/', requireAuth, async (req, res) => {
     if (rating < 1 || rating > 5) {
       return res.status(400).json({ error: 'Rating must be between 1 and 5.' });
     }
+    if (comment && comment.length > 1000) {
+      return res.status(400).json({ error: 'Comment must be 1000 characters or fewer.' });
+    }
 
-    // Verify reservation belongs to this user
-    const [rows] = await pool.execute(
-      `SELECT unit_id FROM reservations WHERE reservation_id = ? AND user_id = ?`,
-      [reservation_id, user_id]
-    );
-    if (!rows.length) return res.status(404).json({ error: 'Reservation not found.' });
+    const reservation = await reservationService.getReservationOwner(reservation_id, user_id);
+    if (!reservation) return res.status(404).json({ error: 'Reservation not found.' });
 
     const existing = await reviewService.getReviewByReservation(reservation_id);
     if (existing) return res.status(409).json({ error: 'You already reviewed this stay.' });
@@ -31,8 +28,8 @@ router.post('/', requireAuth, async (req, res) => {
     const review_id = await reviewService.createReview({
       reservation_id,
       user_id,
-      unit_id: rows[0].unit_id,
-      rating: Number(rating),
+      unit_id: reservation.unit_id,
+      rating:  Number(rating),
       comment
     });
 
@@ -45,12 +42,8 @@ router.post('/', requireAuth, async (req, res) => {
 
 router.get('/mine', requireAuth, async (req, res) => {
   try {
-    const user_id = req.session.user.user_id;
-    const [rows] = await pool.execute(
-      `SELECT reservation_id FROM reviews WHERE user_id = ?`,
-      [user_id]
-    );
-    res.json(rows.map(r => r.reservation_id));
+    const ids = await reviewService.getReviewedReservationIds(req.session.user.user_id);
+    res.json(ids);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }

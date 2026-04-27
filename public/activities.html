@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activities – Sandcastle Resort</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script>if(localStorage.getItem('sc_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+  <style>
+    /* ── Activities Nav ── */
+    .fac-nav { background:#fff; border-bottom:1px solid #e5f0f0; position:sticky; top:0; z-index:200; box-shadow:0 2px 8px rgba(12,74,74,.07); }
+    .fac-nav-inner { max-width:1100px; margin:0 auto; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+    .fac-brand { display:flex; align-items:center; gap:10px; font-weight:700; color:#0c4a4a; font-size:16px; text-decoration:none; }
+    .fac-brand img { width:38px; border-radius:8px; }
+
+    /* ── Hero banner ── */
+    .fac-hero {
+      background: linear-gradient(135deg,#0c4a4a 0%,#0ea5a4 60%,#38bdf8 100%);
+      color:#fff; padding:56px 24px 48px; text-align:center;
+    }
+    .fac-hero h1 { font-size:2.2rem; font-weight:800; margin:0 0 10px; color:#fff; }
+    .fac-hero p  { font-size:1.05rem; margin:0; opacity:.88; }
+
+    /* ── Section tabs ── */
+    .fac-tabs { display:flex; gap:4px; background:#fff; padding:6px; border-radius:12px; border:1px solid #e8f2f2; margin:28px 0 24px; box-shadow:0 2px 8px rgba(12,74,74,.06); flex-wrap:wrap; }
+    .fac-tab  { flex:1; padding:11px 16px; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; background:transparent; color:#6b7280; transition:.15s; white-space:nowrap; text-align:center; }
+    .fac-tab:hover  { background:#f0f9f9; color:#0ea5a4; }
+    .fac-tab.active { background:#0ea5a4; color:#fff; }
+    .fac-panel { display:none; }
+    .fac-panel.active { display:block; }
+
+    /* ── Event cards ── */
+    .event-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; }
+    .event-card { background:#fff; border-radius:12px; border:1px solid #e8f2f2; box-shadow:0 2px 8px rgba(12,74,74,.06); overflow:hidden; }
+    .event-banner { height:80px; display:flex; align-items:center; justify-content:center; font-size:2.8rem; }
+    .event-body { padding:16px 18px; }
+    .event-date { font-size:12px; font-weight:700; color:#0ea5a4; text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+    .event-title { font-size:1rem; font-weight:700; color:#0c4a4a; margin:0 0 6px; }
+    .event-desc { font-size:13px; color:#6b7280; margin:0 0 12px; line-height:1.5; }
+    .event-meta { display:flex; gap:14px; font-size:12px; color:#9ca3af; }
+    .event-meta span::before { margin-right:4px; }
+
+    /* ── Bar menu ── */
+    .menu-category { margin-bottom:32px; }
+    .menu-category h3 { font-size:1rem; font-weight:700; color:#0c4a4a; margin:0 0 14px; display:flex; align-items:center; gap:8px; padding-bottom:8px; border-bottom:2px solid #e8f2f2; }
+    .menu-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+    .menu-item { background:#fff; border-radius:10px; border:1px solid #e8f2f2; padding:14px 16px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; box-shadow:0 2px 6px rgba(12,74,74,.05); }
+    .menu-item-info h4 { font-size:14px; font-weight:700; color:#111827; margin:0 0 3px; }
+    .menu-item-info p  { font-size:12px; color:#6b7280; margin:0; line-height:1.4; }
+    .menu-price { font-size:15px; font-weight:800; color:#0ea5a4; white-space:nowrap; }
+
+    /* ── Activities ── */
+    .activity-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+    .activity-card { background:#fff; border-radius:12px; border:1px solid #e8f2f2; box-shadow:0 2px 8px rgba(12,74,74,.06); padding:20px; }
+    .activity-icon { font-size:2.2rem; margin-bottom:10px; }
+    .activity-card h3 { font-size:1rem; font-weight:700; color:#0c4a4a; margin:0 0 6px; }
+    .activity-card p  { font-size:13px; color:#6b7280; margin:0 0 12px; line-height:1.5; }
+    .activity-tags { display:flex; flex-wrap:wrap; gap:6px; }
+    .activity-tag { background:#e8f5f5; color:#0ea5a4; font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; }
+    .activity-tag.free { background:#d1fae5; color:#065f46; }
+    .activity-tag.paid { background:#fef3c7; color:#92400e; }
+
+    /* ── Dark overrides ── */
+    [data-theme="dark"] .fac-nav  { background:#1e293b; border-bottom-color:#334155; }
+    [data-theme="dark"] .fac-brand { color:#5eead4; }
+    [data-theme="dark"] .fac-tabs { background:#1e293b; border-color:#334155; }
+    [data-theme="dark"] .fac-tab:hover { background:#334155; }
+    [data-theme="dark"] .event-card,
+    [data-theme="dark"] .menu-item,
+    [data-theme="dark"] .activity-card { background:#1e293b; border-color:#334155; }
+    [data-theme="dark"] .event-title,
+    [data-theme="dark"] .activity-card h3,
+    [data-theme="dark"] .menu-category h3 { color:#5eead4; }
+    [data-theme="dark"] .menu-item-info h4 { color:#e2e8f0; }
+    [data-theme="dark"] .menu-category h3 { border-bottom-color:#334155; }
+    [data-theme="dark"] .activity-tag { background:#1e3a3a; }
+
+    @media(max-width:600px){
+      .fac-hero h1 { font-size:1.6rem; }
+      .fac-tabs { flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="fac-nav">
+    <div class="fac-nav-inner">
+      <a href="/" class="fac-brand">
+        <img src="/logo.svg" alt="logo" />
+        Sandcastle Resort
+      </a>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="themeToggleBtn" class="theme-toggle" title="Toggle dark / light mode">🌙</button>
+        <a href="/dashboard" class="btn-secondary" style="font-size:13px;padding:7px 14px">My Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="fac-hero">
+    <h1>🏖️ Resort Activities</h1>
+    <p>Events, dining, and activities — everything you need for the perfect stay.</p>
+  </div>
+
+  <main class="container" style="padding-bottom:48px">
+
+    <div class="fac-tabs">
+      <button class="fac-tab active" data-panel="panel-events">🎉 Upcoming Events</button>
+      <button class="fac-tab" data-panel="panel-bar">🍹 Bar &amp; Dining</button>
+      <button class="fac-tab" data-panel="panel-activities">🤿 Activities</button>
+    </div>
+
+    <!-- ══ Events ════════════════════════════════════════════════════════════ -->
+    <div id="panel-events" class="fac-panel active">
+      <div id="eventsGrid" class="event-grid">
+        <p style="color:#6b7280;font-size:14px">Loading events…</p>
+      </div>
+    </div>
+
+    <!-- ══ Bar & Dining ══════════════════════════════════════════════════════ -->
+    <div id="panel-bar" class="fac-panel">
+      <div id="barMenuContainer"><p class="muted" style="font-size:14px">Loading menu…</p></div>
+      <p class="muted" style="font-size:12px;margin-top:16px">Bar hours: 10:00 AM – 11:00 PM daily. Menu subject to seasonal availability. Gratuity not included.</p>
+    </div>
+
+    <!-- ══ Activities ════════════════════════════════════════════════════════ -->
+    <div id="panel-activities" class="fac-panel">
+      <div id="activitiesContainer" class="activity-grid">
+        <p class="muted" style="font-size:14px">Loading activities…</p>
+      </div>
+
+      <p class="muted" style="font-size:12px;margin-top:24px">Activity availability may vary by weather and season. Contact the front desk to book or for more information.</p>
+    </div>
+
+  </main>
+
+  <footer class="container">
+    &copy; 2026 Sandcastle Resort &nbsp;·&nbsp; <a href="/">Back to Home</a> &nbsp;·&nbsp; <a href="/dashboard">My Dashboard</a>
+  </footer>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll('.fac-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.fac-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.fac-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.panel).classList.add('active');
+      });
+    });
+
+    // Theme toggle
+    (function() {
+      const theme = localStorage.getItem('sc_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      const btn = document.getElementById('themeToggleBtn');
+      if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    })();
+    document.getElementById('themeToggleBtn').addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('sc_theme', next);
+      document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+    });
+
+    // Load events from API
+    const BANNER_GRADIENTS = [
+      'linear-gradient(135deg,#0c4a4a,#0ea5a4)',
+      'linear-gradient(135deg,#7c3aed,#a78bfa)',
+      'linear-gradient(135deg,#b45309,#f59e0b)',
+      'linear-gradient(135deg,#0369a1,#38bdf8)',
+      'linear-gradient(135deg,#065f46,#10b981)',
+      'linear-gradient(135deg,#be185d,#f472b6)'
+    ];
+
+    function fmtEventDate(dateStr, timeStr) {
+      if (!dateStr) return timeStr || '';
+      const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
+      const label = new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+      return timeStr ? `${label} · ${timeStr}` : label;
+    }
+
+    function buildEventCard(ev, idx) {
+      const card = document.createElement('div');
+      card.className = 'event-card';
+
+      const bannerHTML = ev.image_path
+        ? `<img src="${ev.image_path}" alt="${ev.title}" style="width:100%;height:160px;object-fit:cover;display:block">`
+        : `<div class="event-banner" style="background:${BANNER_GRADIENTS[idx % BANNER_GRADIENTS.length]}">${ev.banner_emoji || '🎉'}</div>`;
+
+      card.innerHTML = `
+        ${bannerHTML}
+        <div class="event-body">
+          <div class="event-date">${fmtEventDate(ev.event_date, ev.event_time)}</div>
+          <h4 class="event-title">${ev.title}</h4>
+          <p class="event-desc">${ev.description || ''}</p>
+          <div class="event-meta">
+            ${ev.location   ? `<span>📍 ${ev.location}</span>` : ''}
+            ${ev.ticket_info ? `<span>🎟️ ${ev.ticket_info}</span>` : ''}
+          </div>
+        </div>`;
+      return card;
+    }
+
+    async function loadEvents() {
+      const grid = document.getElementById('eventsGrid');
+      try {
+        const res  = await fetch('/api/events');
+        const events = await res.json();
+        grid.innerHTML = '';
+        if (!events.length) {
+          grid.innerHTML = '<p class="muted" style="font-size:14px">No upcoming events posted yet. Check back soon!</p>';
+          return;
+        }
+        events.forEach((ev, i) => grid.appendChild(buildEventCard(ev, i)));
+      } catch {
+        grid.innerHTML = '<p class="muted">Could not load events.</p>';
+      }
+    }
+
+    loadEvents();
+
+    // ── Bar & Dining ──────────────────────────────────────────────────────
+    async function loadBarMenu() {
+      const container = document.getElementById('barMenuContainer');
+      if (!container) return;
+      try {
+        const res   = await fetch('/api/bar');
+        const items = await res.json();
+        if (!items.length) {
+          container.innerHTML = '<p class="muted" style="font-size:14px">Menu coming soon — check back later!</p>';
+          return;
+        }
+        const byCategory = {};
+        items.forEach(item => {
+          if (!byCategory[item.category]) byCategory[item.category] = [];
+          byCategory[item.category].push(item);
+        });
+        container.innerHTML = Object.entries(byCategory).map(([cat, catItems]) => `
+          <div class="menu-category">
+            <h3>${cat}</h3>
+            <div class="menu-grid">
+              ${catItems.map(item => `
+                <div class="menu-item">
+                  <div class="menu-item-info">
+                    <h4>${item.name}</h4>
+                    ${item.description ? `<p>${item.description}</p>` : ''}
+                  </div>
+                  <div class="menu-price">${item.price != null ? '$' + Number(item.price).toFixed(2) : ''}</div>
+                </div>`).join('')}
+            </div>
+          </div>`).join('');
+      } catch {
+        container.innerHTML = '<p class="muted">Could not load menu.</p>';
+      }
+    }
+
+    // ── Activities ────────────────────────────────────────────────────────
+    async function loadActivities() {
+      const container = document.getElementById('activitiesContainer');
+      if (!container) return;
+      try {
+        const res   = await fetch('/api/activity-items');
+        const items = await res.json();
+        if (!items.length) {
+          container.innerHTML = '<p class="muted" style="font-size:14px">Activities coming soon — check back later!</p>';
+          return;
+        }
+        container.innerHTML = items.map(item => {
+          const tags = (item.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+          const tagHtml = tags.map(t => {
+            const cls = /free/i.test(t) ? 'free' : /\$|per /i.test(t) ? 'paid' : '';
+            return `<span class="activity-tag ${cls}">${t}</span>`;
+          }).join('');
+          return `
+            <div class="activity-card">
+              <div class="activity-icon">${item.icon || '🏄'}</div>
+              <h3>${item.name}</h3>
+              ${item.description ? `<p>${item.description}</p>` : ''}
+              ${tagHtml ? `<div class="activity-tags">${tagHtml}</div>` : ''}
+            </div>`;
+        }).join('');
+      } catch {
+        container.innerHTML = '<p class="muted">Could not load activities.</p>';
+      }
+    }
+
+    loadBarMenu();
+    loadActivities();
+  </script>
+
+</body>
+</html>

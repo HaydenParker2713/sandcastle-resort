@@ -7,21 +7,16 @@ function requireAuth(req, res, next) {
 
 function requireRole(...allowedRoles) {
   const normalized = allowedRoles.map(r => String(r).toLowerCase());
-  return (req, res, next) => {
-    if (!req.session || !req.session.user) {
-      return res.status(401).json({ error: 'Authentication required.' });
+  return [
+    requireAuth,
+    (req, res, next) => {
+      const userRole = String(req.session.user.role_name || '').toLowerCase();
+      if (!normalized.includes(userRole)) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+      next();
     }
-
-    const userRole = String(req.session.user.role_name || '').toLowerCase();
-    if (!normalized.includes(userRole)) {
-      return res.status(403).json({ error: 'Access denied.' });
-    }
-
-    next();
-  };
+  ];
 }
 
-module.exports = {
-  requireAuth,
-  requireRole
-};
+module.exports = { requireAuth, requireRole };

@@ -1,25 +1,65 @@
-async function apiFetch(url, options = {}) {
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json"
-    },
-    credentials: "same-origin",
-    ...options
-  });
+/* ── Theme & Avatar ──────────────────────────────────────────────────────── */
+const AVATARS = ['🏄','🌊','🏖️','🐚','⛵','🌴','🦀','🐬','🌺','🤿','🏝️','🦈'];
+const DEFAULT_AVATAR = '🏄';
 
-  let data = {};
-  try {
-    data = await response.json();
-  } catch (error) {
-    throw new Error("Server returned an invalid response.");
-  }
-
-  if (!response.ok) {
-    throw new Error(data.error || "Request failed.");
-  }
-
-  return data;
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('sc_theme', theme);
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  const lightBtn = document.getElementById('themeLightBtn');
+  const darkBtn  = document.getElementById('themeDarkBtn');
+  if (lightBtn) lightBtn.classList.toggle('active', theme === 'light');
+  if (darkBtn)  darkBtn.classList.toggle('active',  theme === 'dark');
 }
+
+function applyAvatar(emoji) {
+  localStorage.setItem('sc_avatar', emoji);
+  const el = document.getElementById('profileAvatar');
+  if (el) el.textContent = emoji;
+}
+
+(function initPrefs() {
+  const theme  = localStorage.getItem('sc_theme')  || 'light';
+  const avatar = localStorage.getItem('sc_avatar') || DEFAULT_AVATAR;
+  applyTheme(theme);
+  const el = document.getElementById('profileAvatar');
+  if (el) el.textContent = avatar;
+})();
+
+function initAvatarPicker() {
+  const picker = document.getElementById('avatarPicker');
+  if (!picker) return;
+  const current = localStorage.getItem('sc_avatar') || DEFAULT_AVATAR;
+  AVATARS.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.textContent = emoji;
+    btn.className = 'avatar-option' + (emoji === current ? ' selected' : '');
+    btn.addEventListener('click', () => {
+      picker.querySelectorAll('.avatar-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      applyAvatar(emoji);
+    });
+    picker.appendChild(btn);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initAvatarPicker();
+
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
+  }
+
+  const themeLightBtn = document.getElementById('themeLightBtn');
+  const themeDarkBtn  = document.getElementById('themeDarkBtn');
+  if (themeLightBtn) themeLightBtn.addEventListener('click', () => applyTheme('light'));
+  if (themeDarkBtn)  themeDarkBtn.addEventListener('click',  () => applyTheme('dark'));
+});
 
 function setMessage(message, type = "info") {
   const box = document.getElementById("messageBox");
@@ -876,6 +916,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             const adminLink = document.getElementById('adminLink');
             if (adminLink) adminLink.style.display = 'inline-block';
           }
+          if (user.role_name === 'staff') {
+            const staffLink = document.getElementById('staffLink');
+            if (staffLink) staffLink.style.display = 'inline-block';
+          }
         } else {
           welcomeEl.textContent = 'Welcome, Guest';
         }
@@ -886,7 +930,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const profileAvatar = document.getElementById('profileAvatar');
     if (profileAvatar) {
-      profileAvatar.src = '/avatar.svg';
+      profileAvatar.textContent = localStorage.getItem('sc_avatar') || DEFAULT_AVATAR;
     }
 
     const logoutBtn = document.getElementById('logoutBtn');
@@ -1077,8 +1121,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           msgBox.style.display = 'block';
           return;
         }
-        if (new_password.length < 6) {
-          msgBox.textContent = 'New password must be at least 6 characters.';
+        if (new_password.length < 8) {
+          msgBox.textContent = 'New password must be at least 8 characters.';
           msgBox.className = 'message-box error';
           msgBox.style.display = 'block';
           return;

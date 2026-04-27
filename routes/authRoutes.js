@@ -1,11 +1,18 @@
-const express = require("express");
-const createServices = require("../services");
-const { pool } = require("../config/db");
+const express    = require("express");
+const rateLimit  = require("express-rate-limit");
+const { authService } = require("../services");
 const { requireAuth } = require("../middleware/auth");
-const { sendPasswordChangedNotice } = require("../utils/email");
-const { authService } = createServices(pool);
+const { sendPasswordChangedNotice, sendPasswordReset } = require("../utils/email");
 
 const router = express.Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please try again in 15 minutes." }
+});
 
 router.post("/register", async (req, res) => {
   try {
@@ -15,8 +22,8 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "All fields are required." });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters long." });
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters long." });
     }
 
     const existing = await authService.findByEmail(email);
@@ -38,7 +45,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -57,11 +64,11 @@ router.post("/login", async (req, res) => {
     }
 
     req.session.user = {
-      user_id: user.user_id,
+      user_id:    user.user_id,
       first_name: user.first_name,
-      last_name: user.last_name,
-      email: user.email,
-      role_name: user.role_name
+      last_name:  user.last_name,
+      email:      user.email,
+      role_name:  user.role_name
     };
 
     res.json({
@@ -79,7 +86,6 @@ router.post("/logout", (req, res) => {
     if (error) {
       return res.status(500).json({ error: "Could not log out." });
     }
-
     res.clearCookie("connect.sid");
     res.json({ message: "Logged out successfully." });
   });
@@ -114,8 +120,8 @@ router.post("/change-password", requireAuth, async (req, res) => {
     if (!current_password || !new_password) {
       return res.status(400).json({ error: "Both current and new password are required." });
     }
-    if (new_password.length < 6) {
-      return res.status(400).json({ error: "New password must be at least 6 characters." });
+    if (new_password.length < 8) {
+      return res.status(400).json({ error: "New password must be at least 8 characters." });
     }
 
     const user = await authService.findByEmail(req.session.user.email);
@@ -126,16 +132,68 @@ router.post("/change-password", requireAuth, async (req, res) => {
 
     await authService.changePassword(req.session.user.user_id, new_password);
 
-    // Fire-and-forget security notice email
-    sendPasswordChangedNotice({
-      to: user.email,
-      firstName: user.first_name
-    });
+    sendPasswordChangedNotice({ to: user.email, firstName: user.first_name })
+      .catch(err => console.error('Security notice email failed:', err.message));
 
     res.json({ message: "Password updated successfully." });
   } catch (error) {
     console.error("Change password error:", error);
     res.status(500).json({ error: "Server error changing password." });
+  }
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many reset requests. Please try again later." }
+});
+
+router.post("/forgot-password", forgotLimiter, async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: "Email is required." });
+  }
+
+  try {
+    const result = await authService.createPasswordResetToken(email);
+
+    if (!result) {
+      return res.status(404).json({ error: "No account found with that email address." });
+    }
+
+    const baseUrl   = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const resetLink = `${baseUrl}/reset-password?token=${result.token}`;
+    sendPasswordReset({ to: result.user.email, firstName: result.user.first_name, resetLink })
+      .catch(err => console.error("Password reset email failed:", err.message));
+
+    res.json({ message: "Reset link sent! Check your email inbox (and spam folder)." });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ error: "Server error. Please try again." });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { token, new_password } = req.body;
+
+    if (!token || !new_password) {
+      return res.status(400).json({ error: "Token and new password are required." });
+    }
+    if (new_password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters." });
+    }
+
+    await authService.resetPasswordByToken(token, new_password);
+    res.json({ message: "Password reset successfully. You can now log in." });
+  } catch (err) {
+    if (err.code === "INVALID_TOKEN") {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error("Reset password error:", err);
+    res.status(500).json({ error: "Server error resetting password." });
   }
 });
 

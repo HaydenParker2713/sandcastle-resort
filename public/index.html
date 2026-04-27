@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sandcastle Resort</title>
   <link rel="stylesheet" href="/styles.css" />
+  <script>if(localStorage.getItem('sc_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
   <style>
     /* ── Hero ── */
     .hero {
@@ -156,7 +157,7 @@
     <p>Studios, suites, and oceanfront balconies — all steps from the sand.</p>
     <div class="hero-btns">
       <button class="btn-hero-primary" id="heroBookBtn">Browse &amp; Book Rooms</button>
-      <button class="btn-hero-secondary" id="heroLearnBtn">Learn More</button>
+      <a href="/activities" class="btn-hero-secondary" style="text-decoration:none">🏖️ Activities &amp; Events</a>
     </div>
   </section>
 
@@ -225,6 +226,9 @@
         <input type="email" id="loginEmail" placeholder="Email address" />
         <input type="password" id="loginPassword" placeholder="Password" />
         <button class="btn-primary" style="width:100%;padding:12px" id="loginSubmitBtn">Sign In</button>
+        <p style="text-align:center;margin:12px 0 0;font-size:13px">
+          <a href="/forgot-password" style="color:#0ea5a4;text-decoration:none;font-weight:600">Forgot your password?</a>
+        </p>
       </div>
 
       <!-- Register panel -->
@@ -236,12 +240,13 @@
           <input type="text" id="regLastName" placeholder="Last name" />
         </div>
         <input type="email" id="regEmail" placeholder="Email address" />
-        <input type="password" id="regPassword" placeholder="Password (min 6 chars)" />
+        <input type="password" id="regPassword" placeholder="Password (min 8 chars)" />
         <button class="btn-primary" style="width:100%;padding:12px" id="registerSubmitBtn">Create Account</button>
       </div>
     </div>
   </div>
 
+  <script src="/api.js"></script>
   <script src="/home.js"></script>
 </body>
 </html>

@@ -1,10 +1,8 @@
 const express = require('express');
-const { pool } = require('../config/db');
-const createServices = require('../services');
+const { authService, statsService, reviewService } = require('../services');
 const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
-const { authService, statsService, reviewService } = createServices(pool);
 
 router.get('/users', requireRole('admin'), async (req, res) => {
   try {
@@ -18,12 +16,12 @@ router.get('/users', requireRole('admin'), async (req, res) => {
 
 router.patch('/users/:id/role', requireRole('admin'), async (req, res) => {
   try {
-    const target_id = Number(req.params.id);
-    const { role_name } = req.body;
+    const target_id = parseInt(req.params.id, 10);
+    if (isNaN(target_id)) return res.status(400).json({ error: 'Invalid user ID.' });
 
+    const { role_name } = req.body;
     if (!role_name) return res.status(400).json({ error: 'role_name is required.' });
 
-    // Prevent changing any admin's role
     const users = await authService.getAllUsers();
     const target = users.find(u => u.user_id === target_id);
     if (!target) return res.status(404).json({ error: 'User not found.' });

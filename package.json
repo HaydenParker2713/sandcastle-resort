@@ -4,16 +4,27 @@
   "description": "Sandcastle Resort Capstone Project",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "db:reset": "mysql -u$DB_USER -p$DB_PASSWORD $DB_NAME < schema.sql",
+    "db:seed": "mysql -u$DB_USER -p$DB_PASSWORD $DB_NAME < seed.sql"
   },
   "author": "Hayden Parker",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.1.1",
+    "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
+    "express-rate-limit": "^8.4.1",
     "express-session": "^1.19.0",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.1.1",
     "mysql2": "^3.19.0",
     "nodemailer": "^8.0.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }
