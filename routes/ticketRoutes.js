@@ -1,10 +1,19 @@
-const express = require('express');
+const express   = require('express');
+const rateLimit = require('express-rate-limit');
 const { ticketService } = require('../services');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
+const createLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many ticket submissions. Please try again later.' }
+});
+
 const router = express.Router();
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, createLimiter, async (req, res) => {
   try {
     const { unit_id, ticket_type, title, description } = req.body;
     if (!unit_id || !ticket_type || !title) {

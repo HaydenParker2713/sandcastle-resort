@@ -118,10 +118,11 @@ CREATE TABLE reservations (
   status         ENUM('confirmed','cancelled') NOT NULL DEFAULT 'confirmed',
   created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (reservation_id),
-  INDEX idx_res_user_id  (user_id),
-  INDEX idx_res_unit_id  (unit_id),
-  INDEX idx_res_check_in (check_in),
-  INDEX idx_res_status   (status),
+  INDEX idx_res_user_id      (user_id),
+  INDEX idx_res_unit_id      (unit_id),
+  INDEX idx_res_check_in     (check_in),
+  INDEX idx_res_status       (status),
+  INDEX idx_res_availability (unit_id, status, check_in, check_out),
   CONSTRAINT fk_res_user
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON UPDATE CASCADE ON DELETE RESTRICT,

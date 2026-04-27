@@ -1,7 +1,16 @@
-const express = require('express');
+const express    = require('express');
+const rateLimit  = require('express-rate-limit');
 const { reservationService } = require('../services');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { sendBookingConfirmation } = require('../utils/email');
+
+const createLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many reservation requests. Please try again later.' }
+});
 
 const router = express.Router();
 
@@ -15,7 +24,7 @@ router.get('/', requireRole('admin', 'staff'), async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, createLimiter, async (req, res) => {
   try {
     const user_id = req.session.user.user_id;
     const { unit_id, check_in, check_out, adults, children } = req.body;
@@ -75,7 +84,8 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
   try {
     const user_id = req.session.user.user_id;
     const isAdmin = req.session.user.role_name === 'admin';
-    const reservation_id = req.params.id;
+    const reservation_id = parseInt(req.params.id, 10);
+    if (isNaN(reservation_id)) return res.status(400).json({ error: 'Invalid reservation ID.' });
 
     try {
       const ok = await reservationService.cancelReservation(reservation_id, user_id, isAdmin);

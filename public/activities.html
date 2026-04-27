@@ -137,6 +137,7 @@
     &copy; 2026 Sandcastle Resort &nbsp;·&nbsp; <a href="/">Back to Home</a> &nbsp;·&nbsp; <a href="/dashboard">My Dashboard</a>
   </footer>
 
+  <script src="/api.js"></script>
   <script>
     // Tab switching
     document.querySelectorAll('.fac-tab').forEach(btn => {
@@ -185,18 +186,18 @@
       card.className = 'event-card';
 
       const bannerHTML = ev.image_path
-        ? `<img src="${ev.image_path}" alt="${ev.title}" style="width:100%;height:160px;object-fit:cover;display:block">`
-        : `<div class="event-banner" style="background:${BANNER_GRADIENTS[idx % BANNER_GRADIENTS.length]}">${ev.banner_emoji || '🎉'}</div>`;
+        ? `<img src="${escapeHTML(ev.image_path)}" alt="${escapeHTML(ev.title)}" style="width:100%;height:160px;object-fit:cover;display:block">`
+        : `<div class="event-banner" style="background:${BANNER_GRADIENTS[idx % BANNER_GRADIENTS.length]}">${escapeHTML(ev.banner_emoji || '🎉')}</div>`;
 
       card.innerHTML = `
         ${bannerHTML}
         <div class="event-body">
           <div class="event-date">${fmtEventDate(ev.event_date, ev.event_time)}</div>
-          <h4 class="event-title">${ev.title}</h4>
-          <p class="event-desc">${ev.description || ''}</p>
+          <h4 class="event-title">${escapeHTML(ev.title)}</h4>
+          <p class="event-desc">${escapeHTML(ev.description || '')}</p>
           <div class="event-meta">
-            ${ev.location   ? `<span>📍 ${ev.location}</span>` : ''}
-            ${ev.ticket_info ? `<span>🎟️ ${ev.ticket_info}</span>` : ''}
+            ${ev.location   ? `<span>📍 ${escapeHTML(ev.location)}</span>` : ''}
+            ${ev.ticket_info ? `<span>🎟️ ${escapeHTML(ev.ticket_info)}</span>` : ''}
           </div>
         </div>`;
       return card;
@@ -238,13 +239,13 @@
         });
         container.innerHTML = Object.entries(byCategory).map(([cat, catItems]) => `
           <div class="menu-category">
-            <h3>${cat}</h3>
+            <h3>${escapeHTML(cat)}</h3>
             <div class="menu-grid">
               ${catItems.map(item => `
                 <div class="menu-item">
                   <div class="menu-item-info">
-                    <h4>${item.name}</h4>
-                    ${item.description ? `<p>${item.description}</p>` : ''}
+                    <h4>${escapeHTML(item.name)}</h4>
+                    ${item.description ? `<p>${escapeHTML(item.description)}</p>` : ''}
                   </div>
                   <div class="menu-price">${item.price != null ? '$' + Number(item.price).toFixed(2) : ''}</div>
                 </div>`).join('')}
@@ -270,13 +271,13 @@
           const tags = (item.tags || '').split(',').map(t => t.trim()).filter(Boolean);
           const tagHtml = tags.map(t => {
             const cls = /free/i.test(t) ? 'free' : /\$|per /i.test(t) ? 'paid' : '';
-            return `<span class="activity-tag ${cls}">${t}</span>`;
+            return `<span class="activity-tag ${cls}">${escapeHTML(t)}</span>`;
           }).join('');
           return `
             <div class="activity-card">
-              <div class="activity-icon">${item.icon || '🏄'}</div>
-              <h3>${item.name}</h3>
-              ${item.description ? `<p>${item.description}</p>` : ''}
+              <div class="activity-icon">${escapeHTML(item.icon || '🏄')}</div>
+              <h3>${escapeHTML(item.name)}</h3>
+              ${item.description ? `<p>${escapeHTML(item.description)}</p>` : ''}
               ${tagHtml ? `<div class="activity-tags">${tagHtml}</div>` : ''}
             </div>`;
         }).join('');

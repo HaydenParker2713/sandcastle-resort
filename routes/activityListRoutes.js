@@ -17,6 +17,9 @@ router.post('/', requireRole('admin'), async (req, res) => {
   try {
     const { icon, name, description, tags } = req.body;
     if (!name) return res.status(400).json({ error: 'Name is required.' });
+    if (name.length > 255) return res.status(400).json({ error: 'Name must be 255 characters or fewer.' });
+    if (description && description.length > 1000) return res.status(400).json({ error: 'Description must be 1000 characters or fewer.' });
+    if (tags && tags.length > 500) return res.status(400).json({ error: 'Tags must be 500 characters or fewer.' });
     const item = await activityListService.create({ icon, name, description, tags });
     res.status(201).json(item);
   } catch (err) {

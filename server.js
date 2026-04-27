@@ -31,7 +31,18 @@ const PORT = process.env.PORT || 3000;
 
 // ── Security headers ──────────────────────────────────────────────────────────
 app.use(helmet({
-  contentSecurityPolicy: false // disabled so CDN scripts (Chart.js) still load
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'", "https://cdn.jsdelivr.net"],
+      styleSrc:   ["'self'", "'unsafe-inline'"],
+      imgSrc:     ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
+      fontSrc:    ["'self'"],
+      objectSrc:  ["'none'"],
+      upgradeInsecureRequests: []
+    }
+  }
 }));
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
@@ -57,8 +68,9 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 2
+      secure:   process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge:   1000 * 60 * 60 * 2
     }
   })
 );

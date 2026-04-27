@@ -31,7 +31,7 @@ function formatDate(val) {
 }
 
 function badge(text, cls) {
-  return `<span class="badge badge-${cls}">${text}</span>`;
+  return `<span class="badge badge-${escapeHTML(cls)}">${escapeHTML(text)}</span>`;
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -87,10 +87,10 @@ async function loadReservations() {
         : '';
       html += `<tr>
         <td>#${r.reservation_id}</td>
-        <td>${r.first_name} ${r.last_name}<br>
-            <span class="sub-muted">${r.email}</span></td>
-        <td>${r.unit_code}<br>
-            <span class="sub-muted">${r.type_name}</span></td>
+        <td>${escapeHTML(r.first_name)} ${escapeHTML(r.last_name)}<br>
+            <span class="sub-muted">${escapeHTML(r.email)}</span></td>
+        <td>${escapeHTML(r.unit_code)}<br>
+            <span class="sub-muted">${escapeHTML(r.type_name)}</span></td>
         <td>${formatDate(r.check_in)}</td>
         <td>${formatDate(r.check_out)}</td>
         <td>${badge(r.status, r.status)}</td>
@@ -129,8 +129,8 @@ async function loadUnits() {
 
     units.forEach(u => {
       html += `<tr>
-        <td>${u.unit_code}</td>
-        <td>${u.type_name}</td>
+        <td>${escapeHTML(u.unit_code)}</td>
+        <td>${escapeHTML(u.type_name)}</td>
         <td>${u.capacity}</td>
         <td>$${Number(u.nightly_rate).toFixed(2)}</td>
         <td>${badge(u.status, u.status)}</td>
@@ -184,11 +184,11 @@ async function loadTickets() {
     tickets.forEach(t => {
       html += `<tr>
         <td>#${t.ticket_id}</td>
-        <td>${t.unit_code}</td>
-        <td>${t.ticket_type}</td>
-        <td>${t.title}${t.description
-          ? `<br><span class="sub-muted">${t.description}</span>` : ''}</td>
-        <td>${t.first_name} ${t.last_name}</td>
+        <td>${escapeHTML(t.unit_code)}</td>
+        <td>${escapeHTML(t.ticket_type)}</td>
+        <td>${escapeHTML(t.title)}${t.description
+          ? `<br><span class="sub-muted">${escapeHTML(t.description)}</span>` : ''}</td>
+        <td>${escapeHTML(t.first_name)} ${escapeHTML(t.last_name)}</td>
         <td>${badge(t.status, t.status)}</td>
         <td>
           <select class="inline" onchange="updateTicketStatus(${t.ticket_id},this.value,this)">
@@ -243,8 +243,8 @@ async function loadUsers() {
 
       html += `<tr>
         <td>#${u.user_id}</td>
-        <td>${u.first_name} ${u.last_name}</td>
-        <td>${u.email}</td>
+        <td>${escapeHTML(u.first_name)} ${escapeHTML(u.last_name)}</td>
+        <td>${escapeHTML(u.email)}</td>
         <td>${badge(u.role_name, u.role_name)}</td>
         <td>${roleSelect}</td>
         <td>${formatDate(u.created_at)}</td>
@@ -347,9 +347,9 @@ async function loadReviews() {
     reviews.forEach(r => {
       html += `<tr>
         <td style="color:#f59e0b;font-size:15px;letter-spacing:1px">${stars(r.rating)}</td>
-        <td>${r.first_name} ${r.last_name}</td>
-        <td>${r.unit_code}<br><span class="sub-muted">${r.type_name}</span></td>
-        <td>${r.comment ? r.comment : '<span class="sub-muted">–</span>'}</td>
+        <td>${escapeHTML(r.first_name)} ${escapeHTML(r.last_name)}</td>
+        <td>${escapeHTML(r.unit_code)}<br><span class="sub-muted">${escapeHTML(r.type_name)}</span></td>
+        <td>${r.comment ? escapeHTML(r.comment) : '<span class="sub-muted">–</span>'}</td>
         <td>${formatDate(r.created_at)}</td>
       </tr>`;
     });
@@ -393,12 +393,12 @@ async function loadBarItems() {
 
     el.innerHTML = Object.entries(byCategory).map(([cat, catItems]) => `
       <div style="margin-bottom:22px">
-        <div class="list-category-header">${cat}</div>
+        <div class="list-category-header">${escapeHTML(cat)}</div>
         ${catItems.map(item => `
           <div class="admin-list-row">
             <div style="flex:1;min-width:0">
-              <span class="list-item-name">${item.name}</span>
-              ${item.description ? `<span class="list-item-desc">${item.description}</span>` : ''}
+              <span class="list-item-name">${escapeHTML(item.name)}</span>
+              ${item.description ? `<span class="list-item-desc">${escapeHTML(item.description)}</span>` : ''}
             </div>
             <span class="list-item-price">${item.price != null ? '$' + Number(item.price).toFixed(2) : '—'}</span>
             <button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5;flex-shrink:0" onclick="deleteBarItem(${item.item_id})">Delete</button>
@@ -449,14 +449,14 @@ async function loadActivityItems() {
       const tags = (item.tags || '').split(',').map(t => t.trim()).filter(Boolean);
       const tagHtml = tags.map(t => {
         const cls = /free|included/i.test(t) ? 'list-tag-free' : /\$|per /i.test(t) ? 'list-tag-paid' : 'list-tag-default';
-        return `<span class="list-tag ${cls}">${t}</span>`;
+        return `<span class="list-tag ${cls}">${escapeHTML(t)}</span>`;
       }).join('');
       return `
         <div class="admin-list-row" style="align-items:flex-start">
-          <div class="list-item-icon">${item.icon || '🏄'}</div>
+          <div class="list-item-icon">${escapeHTML(item.icon || '🏄')}</div>
           <div style="flex:1;min-width:0">
-            <span class="list-item-name">${item.name}</span>
-            ${item.description ? `<span class="list-item-desc">${item.description}</span>` : ''}
+            <span class="list-item-name">${escapeHTML(item.name)}</span>
+            ${item.description ? `<span class="list-item-desc">${escapeHTML(item.description)}</span>` : ''}
             ${tagHtml ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${tagHtml}</div>` : ''}
           </div>
           <button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5;flex-shrink:0" onclick="deleteActivityItem(${item.activity_id})">Delete</button>

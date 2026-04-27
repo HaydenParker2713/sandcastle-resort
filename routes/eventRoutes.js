@@ -1,9 +1,18 @@
-const express  = require('express');
-const multer   = require('multer');
-const path     = require('path');
-const fs       = require('fs');
+const express    = require('express');
+const rateLimit  = require('express-rate-limit');
+const multer     = require('multer');
+const path       = require('path');
+const fs         = require('fs');
 const { eventService } = require('../services');
 const { requireRole }  = require('../middleware/auth');
+
+const createLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many event submissions. Please try again later.' }
+});
 
 const router = express.Router();
 
@@ -42,10 +51,14 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', requireRole('staff', 'admin'), upload.single('image'), async (req, res) => {
+router.post('/', requireRole('staff', 'admin'), createLimiter, upload.single('image'), async (req, res) => {
   try {
     const { title, description, event_date, event_time, location, ticket_info, banner_emoji } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required.' });
+    if (title.length > 255)       return res.status(400).json({ error: 'Title must be 255 characters or fewer.' });
+    if (description && description.length > 2000) return res.status(400).json({ error: 'Description must be 2000 characters or fewer.' });
+    if (location && location.length > 255)   return res.status(400).json({ error: 'Location must be 255 characters or fewer.' });
+    if (ticket_info && ticket_info.length > 255) return res.status(400).json({ error: 'Ticket info must be 255 characters or fewer.' });
 
     const image_path = req.file ? `/uploads/events/${req.file.filename}` : null;
     const event = await eventService.create({
@@ -66,7 +79,7 @@ router.delete('/:id', requireRole('staff', 'admin'), async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid event ID.' });
 
     const imagePath = await eventService.delete(id);
-    if (imagePath) {
+    if (imagePath && imagePath.startsWith('/uploads/events/') && !imagePath.includes('..')) {
       const fullPath = path.join(__dirname, '..', 'public', imagePath);
       fs.unlink(fullPath, () => {});
     }
