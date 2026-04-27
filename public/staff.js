@@ -1,5 +1,10 @@
+// ── staff.js — Staff panel logic (staff.html) ─────────────────────────────────
+// Staff can: view all reservations, update ticket statuses, post/delete events.
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
 function formatDate(val) {
   if (!val) return '';
+  // ISO date strings like "2026-06-15" are parsed without timezone conversion
   if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
     const [y, m, d] = val.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString();
@@ -7,10 +12,12 @@ function formatDate(val) {
   return new Date(val).toLocaleDateString();
 }
 
+// Wraps a string in a coloured badge <span> — CSS handles the colours
 function badge(text, cls) {
   return `<span class="badge badge-${cls}">${text}</span>`;
 }
 
+// Shows a temporary notification bar at the top of the page
 function notify(text, type = 'success') {
   const el = document.getElementById('staffNotify');
   el.textContent = text;
@@ -18,6 +25,9 @@ function notify(text, type = 'success') {
   setTimeout(() => { el.className = 'notify-bar'; }, 3500);
 }
 
+// ── Theme init ────────────────────────────────────────────────────────────────
+// Runs immediately (IIFE) so the correct theme is applied before the page renders,
+// preventing a flash of the wrong colours.
 (function initStaffTheme() {
   const theme = localStorage.getItem('sc_theme') || 'light';
   document.documentElement.setAttribute('data-theme', theme);
@@ -25,6 +35,7 @@ function notify(text, type = 'success') {
   if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
 })();
 
+// Toggle between light and dark mode, persisting the choice in localStorage
 document.getElementById('themeToggleBtn').addEventListener('click', () => {
   const current = document.documentElement.getAttribute('data-theme') || 'light';
   const next = current === 'dark' ? 'light' : 'dark';
@@ -33,6 +44,7 @@ document.getElementById('themeToggleBtn').addEventListener('click', () => {
   document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 
+// ── Navigation ────────────────────────────────────────────────────────────────
 document.getElementById('guestViewBtn').addEventListener('click', () => {
   window.location.href = '/dashboard';
 });
@@ -42,6 +54,9 @@ document.getElementById('staffLogoutBtn').addEventListener('click', async () => 
   window.location.href = '/';
 });
 
+// ── Profile ───────────────────────────────────────────────────────────────────
+// Fetch the current user's name to display in the welcome header.
+// If the API call fails (session expired), redirect to home.
 async function loadProfile() {
   try {
     const { user } = await apiFetch('/api/auth/me');
@@ -50,6 +65,8 @@ async function loadProfile() {
   } catch { window.location.href = '/'; }
 }
 
+// ── Reservations tab ──────────────────────────────────────────────────────────
+// Staff see ALL reservations (no user filter), rendered as a table.
 async function loadReservations() {
   try {
     const rows = await apiFetch('/api/reservations');
@@ -79,6 +96,10 @@ async function loadReservations() {
   }
 }
 
+// ── Tickets tab ───────────────────────────────────────────────────────────────
+// Staff see all tickets and can change status via an inline dropdown.
+// The dropdown's onchange calls updateTicket() which is exposed on window so
+// it can be called from the inline HTML attribute.
 async function loadTickets() {
   try {
     const tickets = await apiFetch('/api/tickets');
@@ -114,8 +135,9 @@ async function loadTickets() {
   }
 }
 
+// Called by inline onchange — updates ticket status via PATCH then reloads the list
 window.updateTicket = async (ticket_id, status, select) => {
-  select.disabled = true;
+  select.disabled = true; // prevent double-submit
   try {
     await apiFetch(`/api/tickets/${ticket_id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
     notify(`Ticket #${ticket_id} updated to ${status}.`);
@@ -126,6 +148,9 @@ window.updateTicket = async (ticket_id, status, select) => {
   }
 };
 
+// ── Startup ───────────────────────────────────────────────────────────────────
+// Load profile and both tables in parallel, then poll every 10 s so updates
+// from other staff members appear without a manual page refresh.
 async function init() {
   await loadProfile();
   await Promise.all([loadReservations(), loadTickets()]);
@@ -137,11 +162,14 @@ async function init() {
 
 init();
 
-/* ── Event management ────────────────────────────────────────────────────── */
+// ── Event management tab ──────────────────────────────────────────────────────
+// The events tab is loaded lazily — initEventTab() only runs the first time
+// the tab is clicked (see the listener at the bottom of this file).
 const EVENT_EMOJIS = ['🎉','🎶','🏐','🍽️','🤿','🧘','🎨','🌅','🎤','🎊','🏄','🐚'];
 
 function initEventTab() {
-  // Emoji picker
+  // ── Emoji picker ──────────────────────────────────────────────────────────
+  // Renders clickable emoji buttons; clicking one sets the hidden emojiInput value
   const picker = document.getElementById('emojiPicker');
   const emojiInput = document.getElementById('evEmoji');
   if (picker) {
@@ -159,7 +187,8 @@ function initEventTab() {
     });
   }
 
-  // Image preview
+  // ── Image preview ─────────────────────────────────────────────────────────
+  // When a file is selected, show a preview so staff can confirm the right image
   const imageInput = document.getElementById('evImage');
   if (imageInput) {
     imageInput.addEventListener('change', () => {
@@ -167,7 +196,7 @@ function initEventTab() {
       const preview = document.getElementById('evImagePreview');
       const img = document.getElementById('evPreviewImg');
       if (file) {
-        img.src = URL.createObjectURL(file);
+        img.src = URL.createObjectURL(file); // local blob URL, no upload yet
         preview.style.display = 'block';
       } else {
         preview.style.display = 'none';
@@ -175,7 +204,10 @@ function initEventTab() {
     });
   }
 
-  // Submit
+  // ── Event form submit ─────────────────────────────────────────────────────
+  // Uses FormData (not JSON) because multipart is needed for the image file.
+  // The raw fetch() is used here instead of apiFetch() so we can omit the
+  // Content-Type header and let the browser set it with the correct boundary.
   const form = document.getElementById('eventForm');
   if (form) {
     form.addEventListener('submit', async (e) => {
@@ -193,7 +225,7 @@ function initEventTab() {
       fd.append('ticket_info',  document.getElementById('evTicket').value.trim());
       fd.append('banner_emoji', document.getElementById('evEmoji').value);
       const imageFile = document.getElementById('evImage').files[0];
-      if (imageFile) fd.append('image', imageFile);
+      if (imageFile) fd.append('image', imageFile); // optional
 
       try {
         const res = await fetch('/api/events', { method: 'POST', body: fd, credentials: 'include' });
@@ -201,10 +233,11 @@ function initEventTab() {
         if (!res.ok) throw new Error(data.error || 'Failed to post event.');
         showEventMsg('Event posted successfully!', 'success');
         form.reset();
+        // Reset emoji picker back to the default selection
         document.getElementById('evEmoji').value = '🎉';
         document.querySelectorAll('.emoji-opt').forEach((b, i) => b.classList.toggle('selected', i === 0));
         document.getElementById('evImagePreview').style.display = 'none';
-        loadStaffEvents();
+        loadStaffEvents(); // refresh the event list below the form
       } catch (err) {
         showEventMsg(err.message, 'error');
       } finally {
@@ -217,6 +250,7 @@ function initEventTab() {
   loadStaffEvents();
 }
 
+// Displays a temporary message below the event form
 function showEventMsg(text, type) {
   const el = document.getElementById('eventMsg');
   el.textContent = text;
@@ -224,6 +258,8 @@ function showEventMsg(text, type) {
   setTimeout(() => { el.className = 'notify-bar'; el.textContent = ''; }, 4000);
 }
 
+// ── Event list ────────────────────────────────────────────────────────────────
+// Fetches all events and renders them as a list with a Delete button on each.
 async function loadStaffEvents() {
   const list = document.getElementById('staffEventList');
   if (!list) return;
@@ -239,6 +275,7 @@ async function loadStaffEvents() {
       const item = document.createElement('div');
       item.className = 'event-list-item';
 
+      // Show image thumbnail if the event has one, otherwise show the banner emoji
       const thumb = ev.image_path
         ? `<img class="event-list-thumb" src="${ev.image_path}" alt="${ev.title}">`
         : `<div class="event-list-emoji">${ev.banner_emoji || '🎉'}</div>`;
@@ -256,6 +293,7 @@ async function loadStaffEvents() {
         </div>
         <button class="btn-ghost" style="font-size:12px;padding:5px 12px;color:#dc2626;border-color:#fca5a5;white-space:nowrap" data-id="${ev.event_id}">Delete</button>`;
 
+      // Confirm before deleting to prevent accidental removals
       item.querySelector('button').addEventListener('click', async () => {
         if (!confirm(`Delete "${ev.title}"?`)) return;
         try {
@@ -274,7 +312,10 @@ async function loadStaffEvents() {
   }
 }
 
-// Init events tab when clicked
+// ── Lazy tab initialisation ───────────────────────────────────────────────────
+// initEventTab() is expensive (DOM manipulation + API call) so we run it only
+// once, the first time the Events tab is clicked. btn._eventsInited is used as
+// a flag so subsequent clicks just show the already-initialised content.
 document.querySelectorAll('.dash-tab-btn').forEach(btn => {
   if (btn.dataset.tab === 'tab-events') {
     btn.addEventListener('click', () => {

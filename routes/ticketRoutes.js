@@ -1,8 +1,13 @@
+// ── Ticket routes  /api/tickets ───────────────────────────────────────────────
+// Guests submit support tickets for maintenance or housekeeping issues.
+// Staff and admins can view all tickets and update their status.
+
 const express   = require('express');
 const rateLimit = require('express-rate-limit');
 const { ticketService } = require('../services');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
+// Limit ticket creation to 30 per hour per IP to prevent spam
 const createLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 30,
@@ -13,9 +18,13 @@ const createLimiter = rateLimit({
 
 const router = express.Router();
 
+// POST /api/tickets — create a new ticket
+// Any logged-in user can submit; they must provide unit_id, ticket_type, and title.
 router.post('/', requireAuth, createLimiter, async (req, res) => {
   try {
     const { unit_id, ticket_type, title, description } = req.body;
+
+    // Validate required fields
     if (!unit_id || !ticket_type || !title) {
       return res.status(400).json({ error: 'unit_id, ticket_type, and title are required.' });
     }
@@ -26,9 +35,10 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
     if (title.length > 150) {
       return res.status(400).json({ error: 'Title must be 150 characters or fewer.' });
     }
+
     const ticket_id = await ticketService.createTicket({
       unit_id: Number(unit_id),
-      created_by: req.session.user.user_id,
+      created_by: req.session.user.user_id, // taken from server-side session, not the request body
       ticket_type,
       title,
       description
@@ -40,6 +50,9 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
   }
 });
 
+// GET /api/tickets — fetch tickets
+// Staff/admin get ALL tickets; regular guests only get their own.
+// The frontend uses this same endpoint for both views.
 router.get('/', requireAuth, async (req, res) => {
   try {
     const isAdminOrStaff = ['admin', 'staff'].includes(req.session.user.role_name);
@@ -53,6 +66,8 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/tickets/:id — update ticket status (open / in_progress / closed)
+// Only staff and admin can change ticket status.
 router.patch('/:id', requireRole('admin', 'staff'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);

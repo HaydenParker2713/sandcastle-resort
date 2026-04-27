@@ -1,8 +1,19 @@
+// ── services.js ───────────────────────────────────────────────────────────────
+// All database logic lives here, organised into service objects — one per
+// feature area. Route handlers call these functions so DB queries stay out of
+// the route files and can be reused or tested independently.
+//
+// Every query uses parameterised placeholders (?) so user input is never
+// interpolated directly into SQL — this prevents SQL injection.
+
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const { pool } = require('./config/db');
+const { pool } = require('./config/db'); // shared MySQL connection pool
 
+// ── unitService ──────────────────────────────────────────────────────────────
+// Manages the physical accommodation units (rooms, suites, etc.)
 const unitService = {
+  // Returns all units joined with their type info (name, capacity, rate)
   async getAllUnits() {
     const [rows] = await pool.execute(
       `SELECT u.unit_id, u.unit_code, u.status,
@@ -22,16 +33,22 @@ const unitService = {
     return result.insertId;
   },
 
+  // Used by admins to mark a unit as available / maintenance / inactive
   async updateUnitStatus(unit_id, status) {
     const [result] = await pool.execute(
       `UPDATE units SET status = ? WHERE unit_id = ?`,
       [status, unit_id]
     );
-    return result.affectedRows > 0;
+    return result.affectedRows > 0; // false if no row matched
   }
 };
 
+// ── authService ───────────────────────────────────────────────────────────────
+// Handles everything related to user identity: registration, login, password
+// management, profile editing, and password reset tokens.
 const authService = {
+  // Look up a user by email including their hashed password and role.
+  // Returns null if not found — callers check for null before comparing passwords.
   async findByEmail(email) {
     const [rows] = await pool.execute(
       `SELECT u.user_id, u.first_name, u.last_name, u.email, u.password_hash, r.role_name
@@ -42,12 +59,15 @@ const authService = {
     return rows[0] || null;
   },
 
+  // Creates a new user with role_id 1 (guest) and a bcrypt hash of their password.
+  // bcrypt cost factor 10 means ~100ms per hash — slow enough to frustrate brute-force.
   async register({ first_name, last_name, email, password }) {
     const passwordHash = await bcrypt.hash(password, 10);
     const [result] = await pool.execute(
       `INSERT INTO users (role_id, first_name, last_name, email, password_hash) VALUES (1, ?, ?, ?, ?)`,
       [first_name, last_name, email, passwordHash]
     );
+    // Re-fetch so we return the same shape as findByEmail (no password_hash)
     const [rows] = await pool.execute(
       `SELECT u.user_id, u.first_name, u.last_name, u.email, r.role_name
        FROM users u JOIN roles r ON u.role_id = r.role_id
@@ -57,6 +77,7 @@ const authService = {
     return rows[0];
   },
 
+  // bcrypt.compare handles the timing-safe comparison — never compare hashes with ===
   async verifyPassword(password, hash) {
     return bcrypt.compare(password, hash);
   },
@@ -75,6 +96,8 @@ const authService = {
     return rows;
   },
 
+  // Admins can promote/demote a user's role. We look up the role_id by name
+  // so the caller only needs to know the readable role name ('guest', 'staff').
   async updateUserRole(user_id, role_name) {
     const [roles] = await pool.execute(`SELECT role_id FROM roles WHERE role_name = ?`, [role_name]);
     if (!roles.length) {
@@ -85,6 +108,10 @@ const authService = {
     await pool.execute(`UPDATE users SET role_id = ? WHERE user_id = ?`, [roles[0].role_id, user_id]);
   },
 
+  // Generates a one-time password-reset token stored on the user row.
+  // The token expires in 1 hour. Returns null if the email doesn't exist
+  // (but callers should NOT tell the user — doing so leaks whether an
+  // email is registered).
   async createPasswordResetToken(email) {
     const [rows] = await pool.execute(
       `SELECT user_id, first_name, email FROM users WHERE email = ?`,
@@ -103,6 +130,7 @@ const authService = {
     return { token, user: rows[0] };
   },
 
+  // Checks that the token exists AND hasn't expired (compared with DB NOW())
   async validateResetToken(token) {
     const [rows] = await pool.execute(
       `SELECT user_id, first_name, email FROM users
@@ -112,6 +140,8 @@ const authService = {
     return rows[0] || null;
   },
 
+  // Validates the token, hashes the new password, then clears the token
+  // so it cannot be reused.
   async resetPasswordByToken(token, newPassword) {
     const user = await this.validateResetToken(token);
     if (!user) {
@@ -128,6 +158,8 @@ const authService = {
     return user;
   },
 
+  // Updates name/email for the logged-in user.
+  // First checks whether the new email is already used by a different account.
   async updateProfile(user_id, { first_name, last_name, email }) {
     const [existing] = await pool.execute(
       `SELECT user_id FROM users WHERE email = ? AND user_id != ?`, [email, user_id]
@@ -150,12 +182,20 @@ const authService = {
   }
 };
 
+// ── reservationService ────────────────────────────────────────────────────────
+// Handles booking rooms. The most critical function is createReservation which
+// runs inside a DB transaction to prevent double-bookings.
 const reservationService = {
   async createReservation({ user_id, unit_id, check_in, check_out, adults = 1, children = 0 }) {
+    // Use a dedicated connection so we can wrap everything in a transaction.
+    // If anything fails, rollback undoes the partial inserts.
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
 
+      // Check for any existing confirmed reservation on this unit that overlaps.
+      // The overlap condition: an existing booking overlaps if it starts before
+      // our desired check_out AND ends after our desired check_in.
       const [overlap] = await conn.execute(
         `SELECT reservation_id FROM reservations
          WHERE unit_id = ? AND status = 'confirmed'
@@ -164,10 +204,11 @@ const reservationService = {
       );
       if (overlap.length > 0) {
         const err = new Error('Unit is not available for the selected dates.');
-        err.code = 'DOUBLE_BOOKING';
+        err.code = 'DOUBLE_BOOKING'; // route handler uses this code to send 409
         throw err;
       }
 
+      // Insert the reservation row
       const [resResult] = await conn.execute(
         `INSERT INTO reservations (user_id, unit_id, check_in, check_out, adults, children)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -175,6 +216,7 @@ const reservationService = {
       );
       const reservation_id = resResult.insertId;
 
+      // Calculate total and auto-create an invoice marked 'unpaid'
       const [rateRows] = await conn.execute(
         `SELECT ut.nightly_rate FROM units u
          JOIN unit_types ut ON u.unit_type_id = ut.unit_type_id
@@ -193,13 +235,14 @@ const reservationService = {
       await conn.commit();
       return reservation_id;
     } catch (err) {
-      await conn.rollback();
+      await conn.rollback(); // undo everything if any step failed
       throw err;
     } finally {
-      conn.release();
+      conn.release(); // always return connection to the pool
     }
   },
 
+  // Fetches only the logged-in user's confirmed reservations (not cancelled ones)
   async getReservationsByUser(user_id) {
     const [rows] = await pool.execute(
       `SELECT r.reservation_id, r.check_in, r.check_out, r.adults, r.children, r.status,
@@ -214,6 +257,8 @@ const reservationService = {
     return rows;
   },
 
+  // Returns full booking details including guest info — used to build the
+  // confirmation email after creating a reservation
   async getReservationById(reservation_id) {
     const [rows] = await pool.execute(
       `SELECT r.reservation_id, r.check_in, r.check_out,
@@ -231,6 +276,8 @@ const reservationService = {
     return rows[0] || null;
   },
 
+  // Confirms that a reservation belongs to the given user (ownership check
+  // before allowing reviews or cancellations)
   async getReservationOwner(reservation_id, user_id) {
     const [rows] = await pool.execute(
       `SELECT reservation_id, unit_id FROM reservations WHERE reservation_id = ? AND user_id = ?`,
@@ -239,6 +286,7 @@ const reservationService = {
     return rows[0] || null;
   },
 
+  // Admin/staff view — all reservations with guest and invoice info
   async getAllReservations() {
     const [rows] = await pool.execute(
       `SELECT r.reservation_id, r.check_in, r.check_out, r.adults, r.children,
@@ -256,6 +304,8 @@ const reservationService = {
     return rows;
   },
 
+  // Cancels a reservation. Non-admins can only cancel their own bookings —
+  // the ownership check throws NOT_ALLOWED so the route returns 403.
   async cancelReservation(reservation_id, user_id, isAdmin = false) {
     if (!isAdmin) {
       const [rows] = await pool.execute(
@@ -276,7 +326,11 @@ const reservationService = {
   }
 };
 
+// ── invoiceService ────────────────────────────────────────────────────────────
+// Invoices are created automatically when a reservation is made (see above).
+// The only manual action is marking them paid (done by admin staff).
 const invoiceService = {
+  // Guest-facing: their own invoices with reservation and unit context
   async getInvoicesByUser(user_id) {
     const [rows] = await pool.execute(
       `SELECT i.invoice_id, i.total_amount, i.status AS invoice_status, i.created_at,
@@ -293,6 +347,7 @@ const invoiceService = {
     return rows;
   },
 
+  // Admin-facing: all invoices with full guest and unit info
   async getAllInvoices() {
     const [rows] = await pool.execute(
       `SELECT i.invoice_id, i.total_amount, i.status AS invoice_status, i.created_at,
@@ -318,6 +373,8 @@ const invoiceService = {
   }
 };
 
+// ── ticketService ─────────────────────────────────────────────────────────────
+// Support tickets submitted by guests for maintenance or housekeeping issues.
 const ticketService = {
   async createTicket({ unit_id, created_by, ticket_type, title, description }) {
     const [result] = await pool.execute(
@@ -328,6 +385,7 @@ const ticketService = {
     return result.insertId;
   },
 
+  // Guests only see their own tickets
   async getTicketsByUser(user_id) {
     const [rows] = await pool.execute(
       `SELECT t.ticket_id, t.ticket_type, t.title, t.description, t.status, t.created_at,
@@ -341,6 +399,7 @@ const ticketService = {
     return rows;
   },
 
+  // Staff/admin see all tickets with reporter name
   async getAllTickets() {
     const [rows] = await pool.execute(
       `SELECT t.ticket_id, t.ticket_type, t.title, t.description, t.status, t.created_at,
@@ -353,6 +412,7 @@ const ticketService = {
     return rows;
   },
 
+  // Staff can change a ticket's status: open → in_progress → closed
   async updateTicketStatus(ticket_id, status) {
     const [result] = await pool.execute(
       `UPDATE tickets SET status = ? WHERE ticket_id = ?`,
@@ -362,6 +422,8 @@ const ticketService = {
   }
 };
 
+// ── reviewService ─────────────────────────────────────────────────────────────
+// Guests can leave one review per completed stay.
 const reviewService = {
   async createReview({ reservation_id, user_id, unit_id, rating, comment }) {
     const [result] = await pool.execute(
@@ -372,6 +434,7 @@ const reviewService = {
     return result.insertId;
   },
 
+  // Used to enforce the one-review-per-stay rule before inserting a new review
   async getReviewByReservation(reservation_id) {
     const [rows] = await pool.execute(
       `SELECT review_id, rating, comment, created_at FROM reviews WHERE reservation_id = ?`,
@@ -380,6 +443,7 @@ const reviewService = {
     return rows[0] || null;
   },
 
+  // Public-facing: show reviews on a unit's listing
   async getReviewsByUnit(unit_id) {
     const [rows] = await pool.execute(
       `SELECT rv.rating, rv.comment, rv.created_at, u.first_name, u.last_name
@@ -392,6 +456,8 @@ const reviewService = {
     return rows;
   },
 
+  // Returns an array of reservation_ids the user has already reviewed.
+  // Used by the dashboard to decide whether to show a "Leave Review" button.
   async getReviewedReservationIds(user_id) {
     const [rows] = await pool.execute(
       `SELECT reservation_id FROM reviews WHERE user_id = ?`,
@@ -400,6 +466,7 @@ const reviewService = {
     return rows.map(r => r.reservation_id);
   },
 
+  // Admin view: all reviews with guest name and unit info
   async getAllReviews() {
     const [rows] = await pool.execute(
       `SELECT rv.review_id, rv.rating, rv.comment, rv.created_at,
@@ -415,13 +482,17 @@ const reviewService = {
   }
 };
 
+// ── statsService ──────────────────────────────────────────────────────────────
+// Aggregated numbers for the admin revenue dashboard.
 const statsService = {
   async getAdminStats() {
+    // Total revenue = sum of all paid invoices
     const [[revenue]] = await pool.execute(
       `SELECT COALESCE(SUM(total_amount),0) AS total_revenue,
               COUNT(*) AS total_invoices
        FROM invoices WHERE status = 'paid'`
     );
+    // Monthly breakdown for the bar chart (last 6 months)
     const [monthly] = await pool.execute(
       `SELECT DATE_FORMAT(i.created_at, '%Y-%m') AS month,
               COALESCE(SUM(i.total_amount),0) AS revenue,
@@ -433,6 +504,7 @@ const statsService = {
        GROUP BY month
        ORDER BY month ASC`
     );
+    // Average star rating across all reviews
     const [[avgRating]] = await pool.execute(
       `SELECT ROUND(AVG(rating),1) AS avg_rating, COUNT(*) AS total_reviews FROM reviews`
     );
@@ -440,6 +512,9 @@ const statsService = {
   }
 };
 
+// ── barService ────────────────────────────────────────────────────────────────
+// Bar & dining menu items, managed by admin from the admin panel.
+// ensureTable() creates the table if it doesn't exist yet — called once on boot.
 const barService = {
   async ensureTable() {
     await pool.execute(`
@@ -454,6 +529,8 @@ const barService = {
       )
     `);
   },
+  // Items are ordered by category first (so menu sections group naturally),
+  // then by sort_order, then by insertion order as a tiebreaker.
   async getAll() {
     const [rows] = await pool.execute(
       `SELECT * FROM bar_items ORDER BY category, sort_order, item_id`
@@ -465,6 +542,7 @@ const barService = {
       `INSERT INTO bar_items (category, name, description, price) VALUES (?, ?, ?, ?)`,
       [category, name, description || null, price != null ? price : null]
     );
+    // Re-fetch and return the full row so the API response includes all fields
     const [rows] = await pool.execute(`SELECT * FROM bar_items WHERE item_id = ?`, [result.insertId]);
     return rows[0];
   },
@@ -473,6 +551,9 @@ const barService = {
   }
 };
 
+// ── activityListService ───────────────────────────────────────────────────────
+// The list of resort activities shown on the public Activities page.
+// Admin-managed — seeded with defaults on first run (see seed.js / server startup).
 const activityListService = {
   async ensureTable() {
     await pool.execute(`
@@ -481,7 +562,7 @@ const activityListService = {
         icon        VARCHAR(10)  DEFAULT '🏄',
         name        VARCHAR(255) NOT NULL,
         description TEXT,
-        tags        VARCHAR(500) DEFAULT NULL,
+        tags        VARCHAR(500) DEFAULT NULL,  -- comma-separated, e.g. "Free,Outdoors"
         sort_order  INT DEFAULT 0,
         created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -506,6 +587,9 @@ const activityListService = {
   }
 };
 
+// ── eventService ──────────────────────────────────────────────────────────────
+// Resort events posted by staff with optional image upload.
+// created_by is BIGINT UNSIGNED to match users.user_id which is also BIGINT UNSIGNED.
 const eventService = {
   async ensureTable() {
     await pool.execute(`
@@ -518,7 +602,7 @@ const eventService = {
         location     VARCHAR(255),
         ticket_info  VARCHAR(255),
         banner_emoji VARCHAR(10)   DEFAULT '🎉',
-        image_path   VARCHAR(500)  DEFAULT NULL,
+        image_path   VARCHAR(500)  DEFAULT NULL,  -- relative path under /public
         created_by   BIGINT UNSIGNED,
         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
@@ -526,6 +610,7 @@ const eventService = {
     `);
   },
 
+  // Public endpoint — events ordered soonest first so upcoming events appear at top
   async getAll() {
     const [rows] = await pool.execute(
       `SELECT e.event_id, e.title, e.description, e.event_date, e.event_time,
@@ -548,6 +633,8 @@ const eventService = {
     return rows[0];
   },
 
+  // Returns the image_path before deleting so the route handler can
+  // delete the uploaded file from disk as well
   async delete(event_id) {
     const [rows] = await pool.execute(`SELECT image_path FROM events WHERE event_id = ?`, [event_id]);
     await pool.execute(`DELETE FROM events WHERE event_id = ?`, [event_id]);
@@ -555,6 +642,7 @@ const eventService = {
   }
 };
 
+// Export all services so route files can import only what they need
 module.exports = {
   unitService,
   authService,

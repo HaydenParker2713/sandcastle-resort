@@ -1,8 +1,13 @@
+// ── Review routes  /api/reviews ───────────────────────────────────────────────
+// Guests can leave one review per completed stay.
+// The public can read reviews by unit; the dashboard shows which stays are reviewed.
+
 const express    = require('express');
 const rateLimit  = require('express-rate-limit');
 const { reviewService, reservationService } = require('../services');
 const { requireAuth } = require('../middleware/auth');
 
+// Limit to 10 reviews per hour per IP — generous but blocks bots
 const createLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
@@ -13,6 +18,8 @@ const createLimiter = rateLimit({
 
 const router = express.Router();
 
+// POST /api/reviews — submit a review for a past stay
+// Enforces: must own the reservation, rating 1–5, one review per reservation.
 router.post('/', requireAuth, createLimiter, async (req, res) => {
   try {
     const user_id = req.session.user.user_id;
@@ -28,9 +35,11 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Comment must be 1000 characters or fewer.' });
     }
 
+    // Verify the reservation belongs to this user (prevents reviewing other guests' stays)
     const reservation = await reservationService.getReservationOwner(reservation_id, user_id);
     if (!reservation) return res.status(404).json({ error: 'Reservation not found.' });
 
+    // Prevent duplicate reviews on the same stay
     const existing = await reviewService.getReviewByReservation(reservation_id);
     if (existing) return res.status(409).json({ error: 'You already reviewed this stay.' });
 
@@ -49,6 +58,8 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
   }
 });
 
+// GET /api/reviews/mine — returns reservation_ids that the current user has reviewed
+// The dashboard uses this to toggle the "Leave Review" / "Reviewed" state on each booking card.
 router.get('/mine', requireAuth, async (req, res) => {
   try {
     const ids = await reviewService.getReviewedReservationIds(req.session.user.user_id);
@@ -59,6 +70,8 @@ router.get('/mine', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/reviews/unit/:unit_id — public endpoint, returns all reviews for one unit
+// Used on unit detail pages to show guest ratings.
 router.get('/unit/:unit_id', async (req, res) => {
   try {
     const unit_id = parseInt(req.params.unit_id, 10);

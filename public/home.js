@@ -1,4 +1,9 @@
-// ── Room card gradients by keyword ────────────────────────────────────────
+// ── home.js — landing page logic (index.html) ─────────────────────────────────
+// Handles: room card gallery, login/register modal, "Book Now" flow,
+// and auto-redirecting already-logged-in users to their correct dashboard.
+
+// ── Room card helpers ──────────────────────────────────────────────────────────
+// Pick a gradient background colour by matching keywords in the room type name.
 function roomGradient(typeName) {
   const t = typeName.toLowerCase();
   if (t.includes('oceanfront'))  return 'linear-gradient(135deg,#0c4a6e,#0ea5e9)';
@@ -10,6 +15,7 @@ function roomGradient(typeName) {
   return                                'linear-gradient(135deg,#374151,#6b7280)';
 }
 
+// Pick an emoji icon for the room type banner
 function roomEmoji(typeName) {
   const t = typeName.toLowerCase();
   if (t.includes('oceanfront')) return '🌊';
@@ -20,7 +26,9 @@ function roomEmoji(typeName) {
   return '🛏️';
 }
 
-// ── Render rooms grid ──────────────────────────────────────────────────────
+// ── Render rooms grid ──────────────────────────────────────────────────────────
+// Groups individual units by type so we show one card per type with an availability count.
+// Clicking "Book Now" either sends the user to their dashboard or opens the login modal.
 function renderRooms(units) {
   const grid = document.getElementById('homeRoomsGrid');
   if (!units.length) {
@@ -28,7 +36,7 @@ function renderRooms(units) {
     return;
   }
 
-  // Group by type so we show one card per type with count
+  // Aggregate units into a map keyed by type_name
   const byType = {};
   units.forEach(u => {
     const key = u.type_name;
@@ -77,7 +85,9 @@ function renderRooms(units) {
   });
 }
 
-// ── Auth modal ─────────────────────────────────────────────────────────────
+// ── Auth modal ─────────────────────────────────────────────────────────────────
+// A single modal contains both the Login and Register tabs.
+// Showing/hiding is done purely with CSS classes (no page reload).
 const modal     = document.getElementById('authModal');
 const modalClose = document.getElementById('modalClose');
 
@@ -88,12 +98,14 @@ function openModal(tab = 'loginPanel') {
 function closeModal() { modal.classList.remove('open'); }
 
 modalClose.addEventListener('click', closeModal);
+// Clicking the backdrop (not the dialog itself) also closes the modal
 modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
 document.querySelectorAll('.modal-tab').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.panel));
 });
 
+// Activate the chosen tab panel and deactivate all others
 function switchTab(panelId) {
   document.querySelectorAll('.modal-tab').forEach(b =>
     b.classList.toggle('active', b.dataset.panel === panelId));
@@ -114,7 +126,8 @@ function clearModalMessages() {
   });
 }
 
-// ── Login submit ───────────────────────────────────────────────────────────
+// ── Login submit ───────────────────────────────────────────────────────────────
+// On success, redirect based on role: admin → /admin, staff → /staff, else → /dashboard
 document.getElementById('loginSubmitBtn').addEventListener('click', async () => {
   clearModalMessages();
   const email    = document.getElementById('loginEmail').value.trim();
@@ -134,14 +147,14 @@ document.getElementById('loginSubmitBtn').addEventListener('click', async () => 
   }
 });
 
-// Allow Enter key in login fields
+// Allow Enter key in login fields to trigger the submit button
 ['loginEmail','loginPassword'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click();
   });
 });
 
-// ── Register submit ────────────────────────────────────────────────────────
+// ── Register submit ────────────────────────────────────────────────────────────
 document.getElementById('registerSubmitBtn').addEventListener('click', async () => {
   clearModalMessages();
   const first_name = document.getElementById('regFirstName').value.trim();
@@ -171,7 +184,9 @@ document.getElementById('registerSubmitBtn').addEventListener('click', async () 
   }
 });
 
-// ── Book button logic ──────────────────────────────────────────────────────
+// ── Book button logic ──────────────────────────────────────────────────────────
+// If the user is already logged in, send them straight to their dashboard.
+// Otherwise open the login modal so they can sign in first.
 async function requireAuthThenBook() {
   try {
     const { user } = await apiFetch('/api/auth/me');
@@ -185,16 +200,19 @@ async function requireAuthThenBook() {
   }
 }
 
-// ── Nav buttons ────────────────────────────────────────────────────────────
+// ── Nav buttons ────────────────────────────────────────────────────────────────
 document.getElementById('navLoginBtn').addEventListener('click', () => openModal('loginPanel'));
 document.getElementById('navBookBtn').addEventListener('click', requireAuthThenBook);
+// Hero "Browse Rooms" scrolls to the room cards section smoothly
 document.getElementById('heroBookBtn').addEventListener('click', () => {
   document.getElementById('roomsSection').scrollIntoView({ behavior: 'smooth' });
 });
 
-// ── Init ───────────────────────────────────────────────────────────────────
+// ── Init ───────────────────────────────────────────────────────────────────────
+// On load, check if the user is already logged in.
+// If they are, skip the home page and send them to their dashboard immediately.
+// Otherwise fetch and render the available room types.
 (async () => {
-  // If already logged in, redirect away from home
   try {
     const { user } = await apiFetch('/api/auth/me');
     if (user) {

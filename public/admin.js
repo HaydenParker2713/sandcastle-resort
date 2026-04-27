@@ -1,3 +1,9 @@
+// ── admin.js — Admin panel logic (admin.html) ─────────────────────────────────
+// Admins can: view/manage reservations, units, tickets, users, reviews,
+// bar menu, and resort activities; see a revenue chart; mark invoices paid.
+
+// ── Theme init ────────────────────────────────────────────────────────────────
+// Applied immediately (IIFE) to prevent a flash of the wrong colour scheme
 (function initAdminTheme() {
   const theme = localStorage.getItem('sc_theme') || 'light';
   document.documentElement.setAttribute('data-theme', theme);
@@ -13,6 +19,7 @@ document.getElementById('themeToggleBtn').addEventListener('click', () => {
   document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 
+// Shows a temporary success/error message bar at the top of the admin panel
 function showMessage(text, type = 'success') {
   const el = document.getElementById('adminMessage');
   el.textContent = text;
@@ -30,10 +37,13 @@ function formatDate(val) {
   return isNaN(d.getTime()) ? val : d.toLocaleDateString();
 }
 
+// Renders a coloured pill badge — colour is controlled by CSS .badge-{cls} rules
 function badge(text, cls) {
   return `<span class="badge badge-${escapeHTML(cls)}">${escapeHTML(text)}</span>`;
 }
 
+// ── Tab navigation ────────────────────────────────────────────────────────────
+// Each button has data-tab="<name>"; clicking it activates #tab-<name>
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -52,6 +62,7 @@ document.getElementById('guestViewBtn').addEventListener('click', () => {
   window.location.href = '/dashboard';
 });
 
+// ── Profile ───────────────────────────────────────────────────────────────────
 async function loadProfile() {
   try {
     const { user } = await apiFetch('/api/auth/me');
@@ -62,6 +73,8 @@ async function loadProfile() {
   } catch {}
 }
 
+// ── Reservations tab ──────────────────────────────────────────────────────────
+// Shows all reservations in a table with a "Mark Paid" button for unpaid invoices.
 async function loadReservations() {
   try {
     const rows = await apiFetch('/api/reservations');
@@ -119,6 +132,8 @@ window.markPaid = async (invoice_id, btn) => {
   }
 };
 
+// ── Units tab ─────────────────────────────────────────────────────────────────
+// Shows all units with an inline dropdown to change status (available / maintenance / inactive)
 async function loadUnits() {
   try {
     const units = await apiFetch('/api/units');
@@ -166,6 +181,8 @@ window.updateUnitStatus = async (unit_id, status, select) => {
   }
 };
 
+// ── Tickets tab ───────────────────────────────────────────────────────────────
+// All tickets with an inline status updater (open / in_progress / closed)
 async function loadTickets() {
   try {
     const tickets = await apiFetch('/api/tickets');
@@ -223,6 +240,8 @@ window.updateTicketStatus = async (ticket_id, status, select) => {
   }
 };
 
+// ── Users tab ─────────────────────────────────────────────────────────────────
+// All users with a role dropdown (admin accounts show "Protected" — cannot be changed)
 async function loadUsers() {
   try {
     const users = await apiFetch('/api/admin/users');
@@ -273,7 +292,9 @@ window.updateUserRole = async (user_id, role_name, select) => {
   }
 };
 
-// ── Search / filter helpers ──────────────────────────────────────────────
+// ── Search / filter helpers ───────────────────────────────────────────────────
+// wireSearch() attaches a live text filter to a table: typing hides rows that
+// don't contain the search string anywhere in their visible text content.
 function wireSearch(inputId, tableWrapId) {
   const input = document.getElementById(inputId);
   if (!input) return;
