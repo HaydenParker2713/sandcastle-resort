@@ -1,5 +1,4 @@
 const express = require("express");
-const { pool } = require("../config/db");
 const { unitService } = require("../services");
 const { requireRole } = require("../middleware/auth");
 
@@ -43,10 +42,7 @@ router.get("/:id/availability", async (req, res) => {
     const unit_id = parseInt(req.params.id, 10);
     if (isNaN(unit_id)) return res.status(400).json({ error: "Invalid unit ID." });
 
-    const [rows] = await pool.execute(
-      `SELECT check_in, check_out FROM reservations WHERE unit_id = ? AND status = 'confirmed'`,
-      [unit_id]
-    );
+    const rows = await unitService.getUnitAvailability(unit_id);
     res.json(rows);
   } catch (error) {
     console.error("Get availability error:", error);

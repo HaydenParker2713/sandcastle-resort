@@ -28,8 +28,9 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
     if (!reservation_id || !rating) {
       return res.status(400).json({ error: 'reservation_id and rating are required.' });
     }
-    if (rating < 1 || rating > 5) {
-      return res.status(400).json({ error: 'Rating must be between 1 and 5.' });
+    const ratingNum = Number(rating);
+    if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      return res.status(400).json({ error: 'Rating must be a number between 1 and 5.' });
     }
     if (comment && comment.length > 1000) {
       return res.status(400).json({ error: 'Comment must be 1000 characters or fewer.' });
@@ -39,6 +40,16 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
     const reservation = await reservationService.getReservationOwner(reservation_id, user_id);
     if (!reservation) return res.status(404).json({ error: 'Reservation not found.' });
 
+    // Only allow reviews on confirmed stays that have already checked out
+    if (reservation.status !== 'confirmed') {
+      return res.status(400).json({ error: 'Can only review a confirmed stay.' });
+    }
+    const checkOutDate = new Date(reservation.check_out);
+    checkOutDate.setHours(0, 0, 0, 0);
+    if (checkOutDate >= new Date()) {
+      return res.status(400).json({ error: 'Reviews can only be submitted after checkout.' });
+    }
+
     // Prevent duplicate reviews on the same stay
     const existing = await reviewService.getReviewByReservation(reservation_id);
     if (existing) return res.status(409).json({ error: 'You already reviewed this stay.' });
@@ -47,7 +58,7 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
       reservation_id,
       user_id,
       unit_id: reservation.unit_id,
-      rating:  Number(rating),
+      rating:  ratingNum,
       comment
     });
 

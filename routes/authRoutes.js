@@ -160,7 +160,8 @@ router.post("/forgot-password", forgotLimiter, async (req, res) => {
     const result = await authService.createPasswordResetToken(email);
 
     if (!result) {
-      return res.status(404).json({ error: "No account found with that email address." });
+      // Always return 200 regardless — don't reveal whether the email is registered
+      return res.json({ message: "Reset link sent! Check your email inbox (and spam folder)." });
     }
 
     const baseUrl   = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;

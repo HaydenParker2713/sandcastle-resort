@@ -40,6 +40,15 @@ const unitService = {
       [status, unit_id]
     );
     return result.affectedRows > 0; // false if no row matched
+  },
+
+  // Returns confirmed bookings for a unit — used to render the availability calendar
+  async getUnitAvailability(unit_id) {
+    const [rows] = await pool.execute(
+      `SELECT check_in, check_out FROM reservations WHERE unit_id = ? AND status = 'confirmed'`,
+      [unit_id]
+    );
+    return rows;
   }
 };
 
@@ -277,10 +286,12 @@ const reservationService = {
   },
 
   // Confirms that a reservation belongs to the given user (ownership check
-  // before allowing reviews or cancellations)
+  // before allowing reviews or cancellations). Returns status and check_out
+  // so callers can verify the stay is complete before accepting a review.
   async getReservationOwner(reservation_id, user_id) {
     const [rows] = await pool.execute(
-      `SELECT reservation_id, unit_id FROM reservations WHERE reservation_id = ? AND user_id = ?`,
+      `SELECT reservation_id, unit_id, status, check_out
+       FROM reservations WHERE reservation_id = ? AND user_id = ?`,
       [reservation_id, user_id]
     );
     return rows[0] || null;
@@ -492,7 +503,7 @@ const statsService = {
               COUNT(*) AS total_invoices
        FROM invoices WHERE status = 'paid'`
     );
-    // Monthly breakdown for the bar chart (last 6 months)
+    // Monthly breakdown for the bar chart (last 6 months, paid invoices only)
     const [monthly] = await pool.execute(
       `SELECT DATE_FORMAT(i.created_at, '%Y-%m') AS month,
               COALESCE(SUM(i.total_amount),0) AS revenue,
@@ -500,6 +511,7 @@ const statsService = {
        FROM invoices i
        JOIN reservations r ON i.reservation_id = r.reservation_id
        WHERE r.status = 'confirmed'
+         AND i.status = 'paid'
          AND i.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
        GROUP BY month
        ORDER BY month ASC`

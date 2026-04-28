@@ -14,7 +14,7 @@ function formatDate(val) {
 
 // Wraps a string in a coloured badge <span> — CSS handles the colours
 function badge(text, cls) {
-  return `<span class="badge badge-${cls}">${text}</span>`;
+  return `<span class="badge badge-${escapeHTML(cls)}">${escapeHTML(text)}</span>`;
 }
 
 // Shows a temporary notification bar at the top of the page
@@ -81,8 +81,8 @@ async function loadReservations() {
     rows.forEach(r => {
       html += `<tr>
         <td>#${r.reservation_id}</td>
-        <td>${r.first_name} ${r.last_name}<br><span class="sub-muted">${r.email}</span></td>
-        <td>${r.unit_code}<br><span class="sub-muted">${r.type_name}</span></td>
+        <td>${escapeHTML(r.first_name)} ${escapeHTML(r.last_name)}<br><span class="sub-muted">${escapeHTML(r.email)}</span></td>
+        <td>${escapeHTML(r.unit_code)}<br><span class="sub-muted">${escapeHTML(r.type_name)}</span></td>
         <td>${formatDate(r.check_in)}</td>
         <td>${formatDate(r.check_out)}</td>
         <td>${badge(r.status, r.status)}</td>
@@ -113,10 +113,10 @@ async function loadTickets() {
     tickets.forEach(t => {
       html += `<tr>
         <td>#${t.ticket_id}</td>
-        <td>${t.unit_code}</td>
-        <td>${t.ticket_type}</td>
-        <td>${t.title}${t.description ? `<br><span class="sub-muted">${t.description}</span>` : ''}</td>
-        <td>${t.first_name} ${t.last_name}</td>
+        <td>${escapeHTML(t.unit_code)}</td>
+        <td>${escapeHTML(t.ticket_type)}</td>
+        <td>${escapeHTML(t.title)}${t.description ? `<br><span class="sub-muted">${escapeHTML(t.description)}</span>` : ''}</td>
+        <td>${escapeHTML(t.first_name)} ${escapeHTML(t.last_name)}</td>
         <td>${badge(t.status, t.status)}</td>
         <td>
           <select class="inline" onchange="updateTicket(${t.ticket_id}, this.value, this)">
@@ -275,21 +275,28 @@ async function loadStaffEvents() {
       const item = document.createElement('div');
       item.className = 'event-list-item';
 
+      const safeTitle = escapeHTML(ev.title);
+      const safeTime  = escapeHTML(ev.event_time || '');
+      const safeLoc   = escapeHTML(ev.location || '');
+      const safeDesc  = escapeHTML(ev.description || '');
+
       // Show image thumbnail if the event has one, otherwise show the banner emoji
       const thumb = ev.image_path
-        ? `<img class="event-list-thumb" src="${ev.image_path}" alt="${ev.title}">`
+        ? `<img class="event-list-thumb" src="${escapeHTML(ev.image_path)}" alt="${safeTitle}">`
         : `<div class="event-list-emoji">${ev.banner_emoji || '🎉'}</div>`;
 
       const dateLabel = ev.event_date
         ? new Date(ev.event_date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
         : '';
 
+      const metaParts = [dateLabel, safeTime, safeLoc].filter(Boolean).join(' · ');
+
       item.innerHTML = `
         ${thumb}
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px;color:var(--accent-deep)">${ev.title}</div>
-          <div style="font-size:12px;color:#6b7280;margin:2px 0">${[dateLabel, ev.event_time, ev.location].filter(Boolean).join(' · ')}</div>
-          <div style="font-size:13px;color:#374151;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px">${ev.description || ''}</div>
+          <div style="font-weight:700;font-size:14px;color:var(--accent-deep)">${safeTitle}</div>
+          <div style="font-size:12px;color:#6b7280;margin:2px 0">${metaParts}</div>
+          <div style="font-size:13px;color:#374151;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px">${safeDesc}</div>
         </div>
         <button class="btn-ghost" style="font-size:12px;padding:5px 12px;color:#dc2626;border-color:#fca5a5;white-space:nowrap" data-id="${ev.event_id}">Delete</button>`;
 

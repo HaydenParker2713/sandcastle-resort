@@ -41,6 +41,18 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
       return res.status(400).json({ error: 'unit_id, check_in and check_out are required.' });
     }
 
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(check_in) || !dateRegex.test(check_out)) {
+      return res.status(400).json({ error: 'Dates must be in YYYY-MM-DD format.' });
+    }
+    const today = new Date().toISOString().split('T')[0];
+    if (check_in < today) {
+      return res.status(400).json({ error: 'Check-in date cannot be in the past.' });
+    }
+    if (check_out <= check_in) {
+      return res.status(400).json({ error: 'Check-out must be after check-in.' });
+    }
+
     const reservationId = await reservationService.createReservation({
       user_id,
       unit_id:  Number(unit_id),
