@@ -88,7 +88,7 @@ The application follows a classic **three-tier architecture**:
                      │ mysql2/promise (pooled)
 ┌────────────────────▼────────────────────────────┐
 │              DATABASE (MySQL 8)                 │
-│   10 normalised tables, FK constraints,         │
+│   11 tables, FK constraints,                    │
 │   composite indexes, CHECK constraints          │
 └─────────────────────────────────────────────────┘
 ```
@@ -194,7 +194,7 @@ Every query uses **parameterised placeholders** (`?`) — user input is never in
 | `/api/events` | eventRoutes.js | List (public), create with image upload (staff/admin), delete |
 | `/api/bar` | barRoutes.js | List (public), create (admin), delete (admin) |
 | `/api/activity-items` | activityListRoutes.js | List (public), create (admin), delete (admin) |
-| `/api/admin` | adminRoutes.js | User list, role update, all reviews, all invoices, revenue stats |
+| `/api/admin` | adminRoutes.js | User list, role update, all reviews, revenue stats |
 
 ### 2.3.5 Security Implementation
 
@@ -593,7 +593,7 @@ The Sandcastle Resort application successfully delivers a complete, production-r
 - **Interactive availability calendar** built from scratch without any calendar library, with month navigation, year filtering, and consecutive-range validation
 - **Three-role access control** (guest, staff, admin) enforced at both the server route level and the client UI level
 - **File upload system** for event images with validation, storage, and cleanup on deletion
-- **Email confirmation system** with Gmail SMTP integration and a development fallback
+- **Email confirmation system** with SMTP integration and a development fallback (Ethereal)
 - **Revenue analytics** with a live Chart.js bar chart and summary statistics
 - **Public-facing activities page** with events, bar menu, and activities tabs, all driven by the API
 - **Full dark mode** with no flash on load, persisted to localStorage across all pages
@@ -685,6 +685,7 @@ This project reinforced several important software engineering principles:
 | POST | /api/auth/forgot-password | Public | Send reset email |
 | POST | /api/auth/reset-password | Public | Reset password by token |
 | GET | /api/units | Public | List all units |
+| POST | /api/units | Admin | Create a new unit |
 | GET | /api/units/:id/availability | Public | Get bookings for a unit |
 | PATCH | /api/units/:id/status | Admin | Change unit status |
 | GET | /api/reservations | Staff/Admin | All reservations |
