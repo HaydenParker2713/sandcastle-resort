@@ -55,7 +55,6 @@ The goal was to demonstrate end-to-end software engineering: database design, RE
 | HTTP logging | morgan |
 | Frontend | Vanilla HTML5, CSS3, JavaScript (no framework) |
 | Charts | Chart.js (CDN) |
-| Containerisation | Docker + Docker Compose |
 
 ## 1.4 Scope
 
