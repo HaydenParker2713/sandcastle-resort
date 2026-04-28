@@ -49,7 +49,7 @@ The goal was to demonstrate end-to-end software engineering: database design, RE
 | Database | MySQL 8 (via mysql2/promise) |
 | Authentication | express-session + bcrypt |
 | File uploads | multer (disk storage) |
-| Email | nodemailer (Gmail SMTP / Ethereal fallback) |
+| Email | nodemailer (SMTP / Ethereal fallback) |
 | Security headers | helmet |
 | Rate limiting | express-rate-limit |
 | HTTP logging | morgan |
@@ -209,11 +209,13 @@ Every query uses **parameterised placeholders** (`?`) — user input is never in
 - `sameSite: 'lax'` — mitigates most CSRF attacks
 - `maxAge: 7200000` — 2-hour session lifetime
 
-**Rate limiting** protects write endpoints:
-- Reservations: 20/hour per IP
-- Tickets: 30/hour per IP
-- Reviews: 10/hour per IP
-- Events: 20/hour per IP
+**Rate limiting** protects write and sensitive endpoints:
+- Login: 10 attempts / 15 minutes per IP
+- Forgot password: 5 requests / hour per IP
+- Reservations: 20 / hour per IP
+- Tickets: 30 / hour per IP
+- Reviews: 10 / hour per IP
+- Events: 20 / hour per IP
 
 **Input length validation** on all text fields prevents oversized payloads from reaching the database.
 
@@ -280,7 +282,13 @@ The admin panel polls reservations and tickets every 10 seconds to keep data fre
 
 ## 2.5 Email System
 
-Booking confirmation emails are sent using nodemailer. The system attempts to connect to Gmail SMTP using credentials from environment variables. If that fails (e.g., in development), it falls back to Ethereal (a fake SMTP service) and logs a preview URL to the console. Emails are sent after the HTTP response so the guest never waits.
+The system sends three types of transactional emails using nodemailer (`utils/email.js`):
+
+1. **Booking confirmation** — sent after a reservation is created; includes unit, dates, nights, and total amount.
+2. **Password changed notice** — a security alert sent whenever a user changes their password via the Account panel.
+3. **Password reset** — sent when a user requests a reset link via the Forgot Password page; contains a one-time token link valid for 1 hour.
+
+All three emails use a shared `getTransporter()` function. If `SMTP_HOST`, `SMTP_USER`, and `SMTP_PASS` are set in the environment, the system uses that SMTP server. Otherwise it falls back to Ethereal (a fake SMTP capture service used in development) and logs a preview URL to the console so emails can be inspected without actually sending them. All emails are sent asynchronously after the HTTP response so users never wait on email delivery.
 
 ## 2.6 File Upload System
 
@@ -654,8 +662,12 @@ This project reinforced several important software engineering principles:
 | `DB_USER` | Yes | MySQL username |
 | `DB_PASSWORD` | Yes | MySQL password |
 | `DB_NAME` | Yes | Database name (sandcastle_resort) |
-| `GMAIL_USER` | No | Gmail address for sending confirmation emails |
-| `GMAIL_PASS` | No | Gmail app password |
+| `SMTP_HOST` | No | SMTP server hostname (e.g. smtp.gmail.com) |
+| `SMTP_PORT` | No | SMTP port (default: 587) |
+| `SMTP_USER` | No | SMTP login username |
+| `SMTP_PASS` | No | SMTP login password |
+| `SMTP_FROM` | No | Display name and address for outgoing email |
+| `APP_URL` | No | Base URL used to build password reset links (e.g. https://yourdomain.com) |
 | `PORT` | No | Server port (default: 3000) |
 | `NODE_ENV` | No | Set to `production` for secure cookies and silent logging |
 | `ALLOWED_ORIGIN` | No | CORS allowed origin in production |
