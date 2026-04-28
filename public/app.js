@@ -292,6 +292,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     return '🛏️';
   }
 
+  function unitImage(typeName) {
+    const t = typeName.toLowerCase();
+    if (t.includes('oceanfront') && !t.includes('studio')) return '/room1.svg';
+    if (t.includes('oceanfront'))                           return '/room2.svg';
+    if (t.includes('poolside') && !t.includes('studio'))   return '/room3.svg';
+    if (t.includes('poolside'))                             return '/room4.svg';
+    if (t.includes('standard suite') && t.includes('main'))return '/room5.svg';
+    if (t.includes('standard studio') && !t.includes('balcony') && t.includes('main')) return '/room6.svg';
+    if (t.includes('queen'))                                return '/room7.svg';
+    if (t.includes('standard studio') && t.includes('balcony') && t.includes('main'))  return '/room8.svg';
+    if (t.includes('small suite'))                          return '/room9.svg';
+    if (t.includes('pool building'))                        return '/room10.svg';
+    if (t === 'studio')                                     return '/room11.svg';
+    if (t.includes('one bedroom'))                          return '/room12.svg';
+    if (t.includes('two bedroom'))                          return '/room13.svg';
+    return '/room5.svg';
+  }
+
   // ── Load and render units ──────────────────────────────────────────────────
   // Populates three things at once:
   //   1. A hidden <select> used internally for the calendar logic
@@ -334,11 +352,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           card.className = 'unit-card';
           card.dataset.unitId = unit.unit_id;
           card.innerHTML = `
-            <div class="unit-card-img" style="background:${unitGradient(unit.type_name)}">
-              <div>
-                <div style="font-size:1.4rem">${unitEmoji(unit.type_name)}</div>
-                <div>${unit.unit_code}</div>
-              </div>
+            <div class="unit-card-img" style="position:relative;overflow:hidden;background:${unitGradient(unit.type_name)}">
+              <img src="${unit.unit_photo_url || unit.type_photo_url || unitImage(unit.type_name)}" alt="${unit.type_name}"
+                   style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"
+                   onerror="this.remove()">
             </div>
             <div class="unit-card-body">
               <div class="unit-card-code">${unit.unit_code}</div>
@@ -385,10 +402,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     detailsEl.style.display = 'block';
     detailsEl.innerHTML = `
       <div class="unit-detail-panel" style="background:${unitGradient(unit.type_name)}">
-        <div class="detail-emoji">${unitEmoji(unit.type_name)}</div>
+        <img src="${unit.unit_photo_url || unit.type_photo_url || unitImage(unit.type_name)}" alt=""
+             style="width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0"
+             onerror="this.style.display='none'">
         <div style="flex:1">
           <h3>${unit.unit_code} – ${unit.type_name}</h3>
           <p>👥 Up to ${unit.capacity} guests &nbsp;·&nbsp; ${unit.status}</p>
+          ${unit.unit_description ? `<p style="margin:4px 0 0;font-size:12px;opacity:.85">${escapeHTML(unit.unit_description)}</p>` : ''}
         </div>
         <div style="text-align:right">
           <div class="detail-rate">$${Number(unit.nightly_rate).toFixed(2)}</div>
@@ -465,7 +485,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         else if (isBooked)  className = 'booked';
         else                className = 'available';
 
-        html += `<td class="${className}" data-date="${dateStr}" style="padding: 10px; text-align: center; border: 1px solid #ddd;">${day}</td>`;
+        html += `<td class="${className}" data-date="${dateStr}">${day}</td>`;
         if ((firstDay + day) % 7 === 0) html += '</tr><tr>'; // start new row each Saturday
       }
 

@@ -52,14 +52,64 @@
     .list-tag-free    { background:#d1fae5; color:#065f46; }
     .list-tag-paid    { background:#fef3c7; color:#92400e; }
     .list-tag-default { background:#e8f5f5; color:#0c4a4a; }
-    [data-theme="dark"] .admin-field-label { color:#5eead4; }
-    [data-theme="dark"] #barForm input, [data-theme="dark"] #actForm input, [data-theme="dark"] #actForm textarea { background:#0f172a; border-color:#334155; color:#e2e8f0; }
-    [data-theme="dark"] .admin-list-row { border-bottom-color:#334155; }
-    [data-theme="dark"] .list-category-header { color:#0ea5a4; border-bottom-color:#334155; }
-    [data-theme="dark"] .list-item-name  { color:#5eead4; }
-    [data-theme="dark"] .list-item-desc  { color:#cbd5e1; }
-    [data-theme="dark"] .list-tag-default { background:#1e3a3a; color:#5eead4; }
     .table-wrap { overflow-x: auto; }
+
+    /* ── Dark mode ─────────────────────────────────────────────────────────── */
+    [data-theme="dark"] body          { background: #0f172a; color: #e2e8f0; }
+    [data-theme="dark"] table th      { background: #1e3553; color: #5eead4; border-bottom-color: #334155; }
+    [data-theme="dark"] table td      { border-bottom-color: #334155; color: #e2e8f0; }
+    [data-theme="dark"] tr:hover td   { background: #253348 !important; }
+    [data-theme="dark"] .stat-card    { background: #1e293b; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+    [data-theme="dark"] .stat-card .num { color: #2dd4bf; }
+    [data-theme="dark"] .stat-card .lbl { color: #b8c7d9; }
+    [data-theme="dark"] .tab-btn      { background: #1e293b; color: #2dd4bf; }
+    [data-theme="dark"] .tab-btn.active { background: #0d9488; color: #fff; }
+    [data-theme="dark"] select.inline { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+    [data-theme="dark"] .sub-muted    { color: #94a3b8; }
+    [data-theme="dark"] .admin-message.success { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .admin-message.error   { background: #450a0a; color: #fca5a5; }
+    [data-theme="dark"] .badge-unpaid      { background: #450a0a; color: #fca5a5; }
+    [data-theme="dark"] .badge-paid        { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .badge-confirmed   { background: #1e3a5f; color: #93c5fd; }
+    [data-theme="dark"] .badge-cancelled   { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    [data-theme="dark"] .badge-available   { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .badge-maintenance { background: #451a03; color: #fcd34d; }
+    [data-theme="dark"] .badge-inactive    { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    [data-theme="dark"] .badge-open        { background: #450a0a; color: #fca5a5; }
+    [data-theme="dark"] .badge-in_progress { background: #451a03; color: #fcd34d; }
+    [data-theme="dark"] .badge-closed      { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .badge-admin       { background: #2e1065; color: #c4b5fd; }
+    [data-theme="dark"] .badge-staff       { background: #1e3a5f; color: #93c5fd; }
+    [data-theme="dark"] .badge-guest       { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    [data-theme="dark"] .list-tag-free     { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .list-tag-paid     { background: #451a03; color: #fcd34d; }
+    [data-theme="dark"] .admin-field-label { color: #5eead4; }
+    [data-theme="dark"] #barForm input, [data-theme="dark"] #actForm input, [data-theme="dark"] #actForm textarea { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+    [data-theme="dark"] .admin-list-row    { border-bottom-color: #334155; }
+    [data-theme="dark"] .list-category-header { color: #2dd4bf; border-bottom-color: #334155; }
+    [data-theme="dark"] .list-item-name   { color: #5eead4; }
+    [data-theme="dark"] .list-item-desc   { color: #cbd5e1; }
+    [data-theme="dark"] .list-tag-default  { background: #1e3a3a; color: #5eead4; }
+    [data-theme="dark"] .closed-tickets-section h3 { color: #5eead4; }
+    [data-theme="dark"] #searchReservations,
+    [data-theme="dark"] #searchTickets,
+    [data-theme="dark"] #searchUsers { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+    [data-theme="dark"] #unitTypesHr { border-top-color: #334155; }
+    [data-theme="dark"] #tab-units p { color: #94a3b8; }
+    [data-theme="dark"] #unitTypeModal > div,
+    [data-theme="dark"] #unitModal > div { background: #1e293b; color: #e2e8f0; }
+    [data-theme="dark"] #unitTypeModal h2,
+    [data-theme="dark"] #unitModal h2 { color: #5eead4; }
+    [data-theme="dark"] #unitTypeDesc, [data-theme="dark"] #unitTypeAmenities,
+    [data-theme="dark"] #unitModalDesc, [data-theme="dark"] #unitModalRate { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+    [data-theme="dark"] #unitTypeModal p,
+    [data-theme="dark"] #unitModal p { color: #64748b; }
+    [data-theme="dark"] #unitModal .unit-modal-label { color: #5eead4; }
+    [data-theme="dark"] #addUnitSection { background: #162032; border-color: #334155; }
+    [data-theme="dark"] #addUnitSection h3 { color: #5eead4; }
+    [data-theme="dark"] #newUnitCode,
+    [data-theme="dark"] #newUnitType,
+    [data-theme="dark"] #newUnitStatus { background: #0f172a; border-color: #334155; color: #e2e8f0; }
   </style>
 </head>
 <body>
@@ -122,6 +172,34 @@
     <div id="tab-units" class="tab-panel card">
       <h2>Units</h2>
       <div class="table-wrap" id="unitsTable">Loading...</div>
+
+      <div id="addUnitSection" style="margin-top:20px;padding:18px 20px;background:#f8fafb;border-radius:10px;border:1.5px solid #e5e7eb">
+        <h3 style="margin:0 0 12px;font-size:0.95rem;font-weight:700;color:#0c4a4a">Add New Unit</h3>
+        <div id="addUnitMsg" class="admin-message" style="margin-bottom:10px"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+          <div><label class="admin-field-label">Unit Code *</label>
+            <input id="newUnitCode" placeholder="e.g. A201" maxlength="20"
+              style="padding:8px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;width:110px;text-transform:uppercase"></div>
+          <div><label class="admin-field-label">Room Type *</label>
+            <select id="newUnitType" class="inline" style="padding:8px 12px;font-size:14px">
+              <option value="">Select type…</option>
+            </select></div>
+          <div><label class="admin-field-label">Status</label>
+            <select id="newUnitStatus" class="inline" style="padding:8px 12px;font-size:14px">
+              <option value="available">Available</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="inactive">Inactive</option>
+            </select></div>
+          <button id="addUnitBtn" class="btn-primary" style="padding:9px 20px;font-size:14px">+ Add Unit</button>
+        </div>
+      </div>
+
+      <hr style="margin:28px 0;border:none;border-top:1px solid #e5e7eb" id="unitTypesHr">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <h2 style="margin:0">Room Types</h2>
+        <p style="margin:0;font-size:13px;color:#6b7280">Set descriptions, amenities and display photos shown to guests</p>
+      </div>
+      <div id="unitTypesContainer">Loading...</div>
     </div>
 
     <div id="tab-tickets" class="tab-panel card">
@@ -129,7 +207,14 @@
         <h2 style="margin:0">Maintenance &amp; Housekeeping Tickets</h2>
         <input type="search" id="searchTickets" placeholder="Search unit, title…" style="padding:8px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:13px;width:220px" />
       </div>
-      <div class="table-wrap" id="ticketsTable">Loading...</div>
+      <div class="table-wrap" id="ticketsTableActive">Loading...</div>
+      <div id="closedTicketsToggleWrap" style="margin-top:20px;display:none">
+        <button id="closedTicketsToggleBtn" class="btn-secondary" style="font-size:13px;padding:7px 16px">Show Closed Tickets ▼</button>
+      </div>
+      <div class="closed-tickets-section" id="closedTicketsSection" style="margin-top:16px;display:none">
+        <h3 style="margin:0 0 12px;font-size:1rem;color:#0c4a4a">Closed Tickets</h3>
+        <div class="table-wrap" id="ticketsTableClosed"></div>
+      </div>
     </div>
 
     <div id="tab-users" class="tab-panel card">
@@ -240,6 +325,109 @@
     </div>
 
   </main>
+
+  <!-- ── Individual Unit edit modal ───────────────────────────────────────── -->
+  <div id="unitModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:14px;padding:28px;max-width:540px;width:90%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+      <button onclick="closeUnitModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;line-height:1">&times;</button>
+      <h2 id="unitModalTitle" style="margin:0 0 20px;font-size:1.15rem;color:#0c4a4a">Edit Unit</h2>
+      <div id="unitModalMsg" class="admin-message" style="margin-bottom:12px"></div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+
+        <!-- Unit code + type on same row -->
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px">
+          <div>
+            <label class="admin-field-label unit-modal-label" for="unitModalCode">Unit Code *</label>
+            <input id="unitModalCode" maxlength="20" placeholder="e.g. A101"
+                   style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box;text-transform:uppercase">
+          </div>
+          <div>
+            <label class="admin-field-label unit-modal-label" for="unitModalType">Room Type *</label>
+            <select id="unitModalType" style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box;background:#fff;color:#111827"></select>
+          </div>
+        </div>
+
+        <div>
+          <label class="admin-field-label unit-modal-label" for="unitModalStatus">Status</label>
+          <select id="unitModalStatus" style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box;background:#fff;color:#111827">
+            <option value="available">Available</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:2px 0">
+
+        <div>
+          <label class="admin-field-label unit-modal-label">Photo</label>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+            <img id="unitModalPhotoPreview" src="" alt="" style="width:100px;height:70px;object-fit:cover;border-radius:8px;display:none;flex-shrink:0;border:1px solid #e5e7eb">
+            <div id="unitModalPhotoPh" style="width:100px;height:70px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:26px;flex-shrink:0">📷</div>
+          </div>
+          <input type="file" id="unitModalPhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" style="font-size:13px">
+          <p style="margin:4px 0 0;font-size:12px;color:#9ca3af">JPEG, PNG, WebP or GIF · Max 5 MB</p>
+        </div>
+
+        <div>
+          <label class="admin-field-label unit-modal-label" for="unitModalDesc">Room Notes</label>
+          <textarea id="unitModalDesc" rows="3" placeholder="Floor level, view, recent renovations…" style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+        </div>
+
+        <div>
+          <label class="admin-field-label unit-modal-label" for="unitModalRate">Nightly Rate ($)</label>
+          <input id="unitModalRate" type="number" min="0" step="0.01"
+                 style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box">
+          <p id="unitModalRateHint" style="margin:4px 0 0;font-size:12px;color:#9ca3af"></p>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:6px">
+          <button id="unitModalDeleteBtn" class="btn-ghost" style="color:#dc2626;border-color:#fca5a5;font-size:13px">Delete Unit</button>
+          <div style="display:flex;gap:10px">
+            <button onclick="closeUnitModal()" class="btn-secondary">Cancel</button>
+            <button id="unitModalSaveBtn" class="btn-primary" style="padding:10px 24px">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Room Type edit modal ──────────────────────────────────────────────── -->
+  <div id="unitTypeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:14px;padding:28px;max-width:520px;width:90%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+      <button onclick="closeUnitTypeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;line-height:1">&times;</button>
+      <h2 id="unitTypeModalTitle" style="margin:0 0 18px;font-size:1.15rem;color:#0c4a4a">Edit Room Type</h2>
+      <div id="unitTypeModalMsg" class="admin-message" style="margin-bottom:12px"></div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label class="admin-field-label">Display Photo</label>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+            <img id="unitTypePhotoPreview" src="" alt="" style="width:80px;height:56px;object-fit:cover;border-radius:8px;display:none;flex-shrink:0;border:1px solid #e5e7eb">
+            <div id="unitTypePhotoPh" style="width:80px;height:56px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:26px;flex-shrink:0">📷</div>
+          </div>
+          <input type="file" id="unitTypePhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" style="font-size:13px">
+          <p style="margin:4px 0 0;font-size:12px;color:#9ca3af">JPEG, PNG, WebP or GIF · Max 5 MB</p>
+        </div>
+
+        <div>
+          <label class="admin-field-label" for="unitTypeDesc">Description</label>
+          <textarea id="unitTypeDesc" rows="3" placeholder="Describe this room type to guests…" style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+        </div>
+
+        <div>
+          <label class="admin-field-label" for="unitTypeAmenities">Amenities</label>
+          <input id="unitTypeAmenities" placeholder="e.g. Ocean view, King bed, Kitchenette, Free Wi-Fi" style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box">
+          <p style="margin:4px 0 0;font-size:12px;color:#9ca3af">Comma-separated list</p>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">
+          <button onclick="closeUnitTypeModal()" class="btn-secondary">Cancel</button>
+          <button id="unitTypeModalSaveBtn" class="btn-primary" style="padding:10px 24px">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/api.js"></script>

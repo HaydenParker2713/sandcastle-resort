@@ -33,6 +33,9 @@ CREATE TABLE unit_types (
   type_name    VARCHAR(50)  NOT NULL,
   capacity     INT          NOT NULL,
   nightly_rate DECIMAL(10,2) NOT NULL,
+  description  VARCHAR(2000) NULL,
+  amenities    VARCHAR(2000) NULL,
+  photo_url    VARCHAR(500)  NULL,
   PRIMARY KEY (unit_type_id),
   UNIQUE KEY uq_unit_type_name (type_name)
 );
@@ -53,10 +56,13 @@ INSERT INTO unit_types (type_name, capacity, nightly_rate) VALUES
   ('Standard Studio with Balcony - Pool Building',2, 159.00);
 
 CREATE TABLE units (
-  unit_id      BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  unit_type_id INT UNSIGNED    NOT NULL,
-  unit_code    VARCHAR(20)     NOT NULL,
-  status       ENUM('available','maintenance','inactive') NOT NULL DEFAULT 'available',
+  unit_id       BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  unit_type_id  INT UNSIGNED    NOT NULL,
+  unit_code     VARCHAR(20)     NOT NULL,
+  status        ENUM('available','maintenance','inactive') NOT NULL DEFAULT 'available',
+  description   VARCHAR(2000)   NULL,
+  photo_url     VARCHAR(500)    NULL,
+  nightly_rate  DECIMAL(10,2)   NULL,   -- overrides unit_type rate when set
   PRIMARY KEY (unit_id),
   UNIQUE KEY uq_unit_code (unit_code),
   CONSTRAINT fk_units_type
@@ -154,6 +160,8 @@ CREATE TABLE tickets (
   title       VARCHAR(150)   NOT NULL,
   description TEXT,
   status      ENUM('open','in_progress','closed') NOT NULL DEFAULT 'open',
+  closed_by   BIGINT UNSIGNED NULL,
+  closed_at   DATETIME NULL,
   created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (ticket_id),
@@ -165,7 +173,10 @@ CREATE TABLE tickets (
     ON UPDATE CASCADE ON DELETE RESTRICT,
   CONSTRAINT fk_ticket_user
     FOREIGN KEY (created_by) REFERENCES users(user_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_ticket_closed_by
+    FOREIGN KEY (closed_by) REFERENCES users(user_id)
+    ON UPDATE CASCADE ON DELETE SET NULL
 );
 
 CREATE TABLE reviews (

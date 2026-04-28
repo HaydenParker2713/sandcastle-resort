@@ -13,16 +13,107 @@ const { pool } = require('./config/db'); // shared MySQL connection pool
 // ── unitService ──────────────────────────────────────────────────────────────
 // Manages the physical accommodation units (rooms, suites, etc.)
 const unitService = {
-  // Returns all units joined with their type info (name, capacity, rate)
+  // Returns all units with effective rate (per-unit overrides type rate when set)
+  // and both unit-level and type-level display fields.
   async getAllUnits() {
     const [rows] = await pool.execute(
       `SELECT u.unit_id, u.unit_code, u.status,
-              ut.type_name, ut.capacity, ut.nightly_rate
+              ut.unit_type_id, ut.type_name, ut.capacity,
+              COALESCE(u.nightly_rate, ut.nightly_rate) AS nightly_rate,
+              u.nightly_rate   AS unit_nightly_rate,
+              ut.nightly_rate  AS type_nightly_rate,
+              u.description    AS unit_description,
+              u.photo_url      AS unit_photo_url,
+              ut.description   AS type_description,
+              ut.amenities     AS type_amenities,
+              ut.photo_url     AS type_photo_url
        FROM units u
        JOIN unit_types ut ON u.unit_type_id = ut.unit_type_id
        ORDER BY u.unit_code`
     );
     return rows;
+  },
+
+  async updateUnitDetails(unit_id, updates) {
+    const allowed = ['unit_code', 'unit_type_id', 'status', 'description', 'photo_url', 'nightly_rate'];
+    const fields  = Object.keys(updates).filter(k => allowed.includes(k));
+    if (!fields.length) return false;
+    const sql    = `UPDATE units SET ${fields.map(f => `${f} = ?`).join(', ')} WHERE unit_id = ?`;
+    const params = [...fields.map(f => updates[f]), unit_id];
+    try {
+      const [result] = await pool.execute(sql, params);
+      return result.affectedRows > 0;
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        const e = new Error('Unit code already in use.');
+        e.code = 'DUPLICATE_CODE';
+        throw e;
+      }
+      throw err;
+    }
+  },
+
+  async deleteUnit(unit_id) {
+    const [active] = await pool.execute(
+      `SELECT reservation_id FROM reservations WHERE unit_id = ? AND status = 'confirmed' LIMIT 1`,
+      [unit_id]
+    );
+    if (active.length) {
+      const err = new Error('Cannot delete a unit with active reservations.');
+      err.code = 'HAS_RESERVATIONS';
+      throw err;
+    }
+    const [result] = await pool.execute(`DELETE FROM units WHERE unit_id = ?`, [unit_id]);
+    return result.affectedRows > 0;
+  },
+
+  // Adds display columns to unit_types and per-unit detail columns to units — safe to call every boot.
+  async ensureColumns() {
+    const conn = await pool.getConnection();
+    try {
+      // unit_types display columns
+      const [typeCols] = await conn.execute(
+        `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'unit_types'
+           AND COLUMN_NAME IN ('description','amenities','photo_url')`
+      );
+      const existingType = new Set(typeCols.map(c => c.COLUMN_NAME));
+      if (!existingType.has('description')) await conn.execute(`ALTER TABLE unit_types ADD COLUMN description VARCHAR(2000) NULL AFTER nightly_rate`);
+      if (!existingType.has('amenities'))   await conn.execute(`ALTER TABLE unit_types ADD COLUMN amenities   VARCHAR(2000) NULL AFTER description`);
+      if (!existingType.has('photo_url'))   await conn.execute(`ALTER TABLE unit_types ADD COLUMN photo_url   VARCHAR(500)  NULL AFTER amenities`);
+
+      // per-unit detail columns
+      const [unitCols] = await conn.execute(
+        `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'units'
+           AND COLUMN_NAME IN ('description','photo_url','nightly_rate')`
+      );
+      const existingUnit = new Set(unitCols.map(c => c.COLUMN_NAME));
+      if (!existingUnit.has('description'))  await conn.execute(`ALTER TABLE units ADD COLUMN description   VARCHAR(2000) NULL`);
+      if (!existingUnit.has('photo_url'))    await conn.execute(`ALTER TABLE units ADD COLUMN photo_url     VARCHAR(500)  NULL`);
+      if (!existingUnit.has('nightly_rate')) await conn.execute(`ALTER TABLE units ADD COLUMN nightly_rate  DECIMAL(10,2) NULL`);
+    } finally {
+      conn.release();
+    }
+  },
+
+  async getAllUnitTypes() {
+    const [rows] = await pool.execute(
+      `SELECT unit_type_id, type_name, capacity, nightly_rate, description, amenities, photo_url
+       FROM unit_types
+       ORDER BY type_name`
+    );
+    return rows;
+  },
+
+  async updateUnitTypeDetails(unit_type_id, updates) {
+    const allowed = ['description', 'amenities', 'photo_url'];
+    const fields  = Object.keys(updates).filter(k => allowed.includes(k));
+    if (!fields.length) return false;
+    const sql    = `UPDATE unit_types SET ${fields.map(f => `${f} = ?`).join(', ')} WHERE unit_type_id = ?`;
+    const params = [...fields.map(f => updates[f]), unit_type_id];
+    const [result] = await pool.execute(sql, params);
+    return result.affectedRows > 0;
   },
 
   async createUnit(unit_type_id, unit_code, status = 'available') {
@@ -227,7 +318,7 @@ const reservationService = {
 
       // Calculate total and auto-create an invoice marked 'unpaid'
       const [rateRows] = await conn.execute(
-        `SELECT ut.nightly_rate FROM units u
+        `SELECT COALESCE(u.nightly_rate, ut.nightly_rate) AS nightly_rate FROM units u
          JOIN unit_types ut ON u.unit_type_id = ut.unit_type_id
          WHERE u.unit_id = ?`,
         [unit_id]
@@ -410,25 +501,36 @@ const ticketService = {
     return rows;
   },
 
-  // Staff/admin see all tickets with reporter name
+  // Staff/admin see all tickets with reporter and closer names
   async getAllTickets() {
     const [rows] = await pool.execute(
-      `SELECT t.ticket_id, t.ticket_type, t.title, t.description, t.status, t.created_at,
-              u.unit_code, usr.first_name, usr.last_name
+      `SELECT t.ticket_id, t.ticket_type, t.title, t.description, t.status,
+              t.created_at, t.closed_at,
+              u.unit_code,
+              usr.first_name, usr.last_name,
+              cl.first_name AS closed_by_first, cl.last_name AS closed_by_last
        FROM tickets t
-       JOIN units u ON t.unit_id = u.unit_id
-       JOIN users usr ON t.created_by = usr.user_id
+       JOIN units u    ON t.unit_id   = u.unit_id
+       JOIN users usr  ON t.created_by = usr.user_id
+       LEFT JOIN users cl ON t.closed_by = cl.user_id
        ORDER BY t.created_at DESC`
     );
     return rows;
   },
 
-  // Staff can change a ticket's status: open → in_progress → closed
-  async updateTicketStatus(ticket_id, status) {
-    const [result] = await pool.execute(
-      `UPDATE tickets SET status = ? WHERE ticket_id = ?`,
-      [status, ticket_id]
-    );
+  // Staff can change a ticket's status: open → in_progress → closed.
+  // When closing, records who closed it and the exact timestamp via MySQL NOW().
+  // Re-opening a ticket clears those fields.
+  async updateTicketStatus(ticket_id, status, closed_by_user_id = null) {
+    let sql, params;
+    if (status === 'closed') {
+      sql    = `UPDATE tickets SET status = ?, closed_by = ?, closed_at = NOW() WHERE ticket_id = ?`;
+      params = [status, closed_by_user_id, ticket_id];
+    } else {
+      sql    = `UPDATE tickets SET status = ?, closed_by = NULL, closed_at = NULL WHERE ticket_id = ?`;
+      params = [status, ticket_id];
+    }
+    const [result] = await pool.execute(sql, params);
     return result.affectedRows > 0;
   }
 };

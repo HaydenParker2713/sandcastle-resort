@@ -29,9 +29,10 @@ const reviewRoutes          = require("./routes/reviewRoutes");
 const eventRoutes           = require("./routes/eventRoutes");
 const barRoutes             = require("./routes/barRoutes");
 const activityListRoutes    = require("./routes/activityListRoutes");
+const unitTypeRoutes        = require("./routes/unitTypeRoutes");
 
 // Services that need to create their DB tables on first run
-const { eventService, barService, activityListService } = require("./services");
+const { eventService, barService, activityListService, unitService } = require("./services");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -111,6 +112,7 @@ app.use("/api/reviews",      reviewRoutes);       // guest reviews on past stays
 app.use("/api/events",          eventRoutes);         // resort events (staff can post with images)
 app.use("/api/bar",             barRoutes);           // bar & dining menu (admin managed)
 app.use("/api/activity-items",  activityListRoutes);  // resort activities list (admin managed)
+app.use("/api/unit-types",      unitTypeRoutes);       // room type details: description, amenities, photo
 
 // ── Page routes ───────────────────────────────────────────────────────────────
 // These serve HTML files for specific URL paths.
@@ -168,6 +170,7 @@ app.get("/api/health", (req, res) => {
 async function startServer() {
   try {
     await testConnection();
+    await unitService.ensureColumns();
     await eventService.ensureTable();
     await barService.ensureTable();
     await activityListService.ensureTable();

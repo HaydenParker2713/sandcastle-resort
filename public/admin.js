@@ -2,6 +2,11 @@
 // Admins can: view/manage reservations, units, tickets, users, reviews,
 // bar menu, and resort activities; see a revenue chart; mark invoices paid.
 
+// Module-level state preserved across polling reloads
+let _closedTicketsVisible = false;
+let _unitTypes = [];
+let _units     = [];
+
 // ── Theme init ────────────────────────────────────────────────────────────────
 // Applied immediately (IIFE) to prevent a flash of the wrong colour scheme
 (function initAdminTheme() {
@@ -133,29 +138,37 @@ window.markPaid = async (invoice_id, btn) => {
 };
 
 // ── Units tab ─────────────────────────────────────────────────────────────────
-// Shows all units with an inline dropdown to change status (available / maintenance / inactive)
 async function loadUnits() {
   try {
     const units = await apiFetch('/api/units');
+    _units = units;
 
     let html = `<table>
-      <thead><tr><th>Code</th><th>Type</th><th>Capacity</th><th>Rate/Night</th><th>Status</th><th>Change Status</th></tr></thead>
-      <tbody>`;
+      <thead><tr>
+        <th>Photo</th><th>Code</th><th>Type</th><th>Rate/Night</th><th>Status</th><th>Edit</th><th>Delete</th>
+      </tr></thead><tbody>`;
 
     units.forEach(u => {
+      const thumb = u.unit_photo_url
+        ? `<img src="${escapeHTML(u.unit_photo_url)}" alt="" style="width:56px;height:40px;object-fit:cover;border-radius:5px;display:block">`
+        : u.type_photo_url
+          ? `<img src="${escapeHTML(u.type_photo_url)}" alt="" style="width:56px;height:40px;object-fit:cover;border-radius:5px;display:block;opacity:.5" title="Room type photo">`
+          : `<div style="width:56px;height:40px;background:#f3f4f6;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:18px">📷</div>`;
+      const rateLabel = u.unit_nightly_rate
+        ? `$${Number(u.unit_nightly_rate).toFixed(2)} <span style="font-size:11px;color:var(--muted)">(custom)</span>`
+        : `$${Number(u.nightly_rate).toFixed(2)}`;
       html += `<tr>
-        <td>${escapeHTML(u.unit_code)}</td>
+        <td>${thumb}</td>
+        <td><strong>${escapeHTML(u.unit_code)}</strong>${u.unit_description
+          ? `<br><span class="sub-muted" style="font-size:11px;max-width:130px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHTML(u.unit_description)}</span>`
+          : ''}</td>
         <td>${escapeHTML(u.type_name)}</td>
-        <td>${u.capacity}</td>
-        <td>$${Number(u.nightly_rate).toFixed(2)}</td>
+        <td>${rateLabel}</td>
         <td>${badge(u.status, u.status)}</td>
-        <td>
-          <select class="inline" onchange="updateUnitStatus(${u.unit_id},this.value,this)">
-            <option value="available" ${u.status === 'available' ? 'selected' : ''}>Available</option>
-            <option value="maintenance" ${u.status === 'maintenance' ? 'selected' : ''}>Maintenance</option>
-            <option value="inactive" ${u.status === 'inactive' ? 'selected' : ''}>Inactive</option>
-          </select>
-        </td>
+        <td><button class="btn-secondary" style="font-size:12px;padding:5px 12px;white-space:nowrap"
+              onclick="openUnitModal(${u.unit_id})">Edit</button></td>
+        <td><button class="btn-ghost" style="font-size:12px;padding:5px 10px;color:#dc2626;border-color:#fca5a5;white-space:nowrap"
+              onclick="deleteUnit(${u.unit_id},'${escapeHTML(u.unit_code)}')">Delete</button></td>
       </tr>`;
     });
 
@@ -165,6 +178,153 @@ async function loadUnits() {
     document.getElementById('unitsTable').textContent = 'Failed to load units.';
   }
 }
+
+window.openUnitModal = function(unitId) {
+  const unit = _units.find(u => u.unit_id === unitId);
+  if (!unit) return;
+
+  document.getElementById('unitModalTitle').textContent = `Edit Unit: ${unit.unit_code}`;
+  document.getElementById('unitModalMsg').className     = 'admin-message';
+  document.getElementById('unitModalMsg').textContent   = '';
+
+  // Structural fields
+  document.getElementById('unitModalCode').value   = unit.unit_code;
+  document.getElementById('unitModalStatus').value = unit.status;
+
+  // Type dropdown — built from cached _unitTypes
+  const typeSelect = document.getElementById('unitModalType');
+  typeSelect.innerHTML = _unitTypes.map(t =>
+    `<option value="${t.unit_type_id}" ${t.unit_type_id === unit.unit_type_id ? 'selected' : ''}>
+      ${escapeHTML(t.type_name)} ($${Number(t.nightly_rate).toFixed(0)}/night)
+    </option>`
+  ).join('');
+
+  // Update rate hint whenever type changes
+  function updateRateHint() {
+    const selected = _unitTypes.find(t => t.unit_type_id === parseInt(typeSelect.value, 10));
+    document.getElementById('unitModalRateHint').textContent =
+      selected ? `Room type default: $${Number(selected.nightly_rate).toFixed(2)}/night` : '';
+  }
+  typeSelect.onchange = updateRateHint;
+  updateRateHint();
+
+  // Display / pricing fields
+  document.getElementById('unitModalDesc').value  = unit.unit_description || '';
+  document.getElementById('unitModalRate').value  = Number(unit.nightly_rate).toFixed(2);
+
+  // Photo preview
+  const fileInput   = document.getElementById('unitModalPhotoInput');
+  const preview     = document.getElementById('unitModalPhotoPreview');
+  const placeholder = document.getElementById('unitModalPhotoPh');
+  fileInput.value = '';
+  const currentPhoto = unit.unit_photo_url || unit.type_photo_url;
+  if (currentPhoto) {
+    preview.src = currentPhoto; preview.style.display = ''; placeholder.style.display = 'none';
+  } else {
+    preview.style.display = 'none'; placeholder.style.display = '';
+  }
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { preview.src = ev.target.result; preview.style.display = ''; placeholder.style.display = 'none'; };
+    reader.readAsDataURL(file);
+  };
+
+  // Delete button inside modal
+  const delBtn = document.getElementById('unitModalDeleteBtn');
+  delBtn.onclick = () => { closeUnitModal(); deleteUnit(unitId, unit.unit_code); };
+
+  const modal = document.getElementById('unitModal');
+  modal.style.display = 'flex';
+  modal._editingUnitId = unitId;
+};
+
+window.closeUnitModal = function() {
+  document.getElementById('unitModal').style.display = 'none';
+};
+
+window.deleteUnit = async (unitId, code) => {
+  if (!confirm(`Delete unit ${code}? This cannot be undone.`)) return;
+  try {
+    await apiFetch(`/api/units/${unitId}`, { method: 'DELETE' });
+    showMessage(`Unit ${code} deleted.`);
+    loadUnits();
+  } catch (err) {
+    showMessage(err.message, 'error');
+  }
+};
+
+document.getElementById('unitModalSaveBtn')?.addEventListener('click', async () => {
+  const modal  = document.getElementById('unitModal');
+  const unitId = modal._editingUnitId;
+  if (!unitId) return;
+
+  const saveBtn   = document.getElementById('unitModalSaveBtn');
+  const msgEl     = document.getElementById('unitModalMsg');
+  const fileInput = document.getElementById('unitModalPhotoInput');
+  saveBtn.disabled = true;
+
+  try {
+    // Save all text/structural fields as JSON
+    await apiFetch(`/api/units/${unitId}/details`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        unit_code:    document.getElementById('unitModalCode').value.trim().toUpperCase(),
+        unit_type_id: parseInt(document.getElementById('unitModalType').value, 10),
+        status:       document.getElementById('unitModalStatus').value,
+        description:  document.getElementById('unitModalDesc').value.trim(),
+        nightly_rate: document.getElementById('unitModalRate').value.trim()
+      })
+    });
+
+    // Upload photo separately if one was chosen
+    if (fileInput.files[0]) {
+      const fd = new FormData();
+      fd.append('photo', fileInput.files[0]);
+      await apiFetch(`/api/units/${unitId}/photo`, { method: 'PATCH', body: fd, headers: {} });
+    }
+
+    msgEl.textContent = 'Unit saved!';
+    msgEl.className   = 'admin-message success';
+    setTimeout(() => { closeUnitModal(); loadUnits(); }, 900);
+  } catch (err) {
+    msgEl.textContent = err.message;
+    msgEl.className   = 'admin-message error';
+  } finally {
+    saveBtn.disabled = false;
+  }
+});
+
+// Add New Unit form
+document.getElementById('addUnitBtn')?.addEventListener('click', async () => {
+  const btn    = document.getElementById('addUnitBtn');
+  const msgEl  = document.getElementById('addUnitMsg');
+  const code   = document.getElementById('newUnitCode').value.trim().toUpperCase();
+  const typeId = parseInt(document.getElementById('newUnitType').value, 10);
+  const status = document.getElementById('newUnitStatus').value;
+
+  if (!code)        { msgEl.textContent = 'Unit code is required.';  msgEl.className = 'admin-message error'; return; }
+  if (isNaN(typeId)){ msgEl.textContent = 'Please select a room type.'; msgEl.className = 'admin-message error'; return; }
+
+  btn.disabled = true;
+  try {
+    await apiFetch('/api/units', {
+      method: 'POST',
+      body: JSON.stringify({ unit_code: code, unit_type_id: typeId, status })
+    });
+    msgEl.textContent = `Unit ${code} created.`;
+    msgEl.className   = 'admin-message success';
+    document.getElementById('newUnitCode').value  = '';
+    document.getElementById('newUnitType').value  = '';
+    loadUnits();
+  } catch (err) {
+    msgEl.textContent = err.message;
+    msgEl.className   = 'admin-message error';
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 window.updateUnitStatus = async (unit_id, status, select) => {
   select.disabled = true;
@@ -181,47 +341,248 @@ window.updateUnitStatus = async (unit_id, status, select) => {
   }
 };
 
+// ── Unit Types tab section ────────────────────────────────────────────────────
+// Lets admin set description, amenities, and display photo per room type.
+async function loadUnitTypes() {
+  const container = document.getElementById('unitTypesContainer');
+  if (!container) return;
+  try {
+    const types = await apiFetch('/api/unit-types');
+    _unitTypes = types;
+
+    const newUnitTypeEl = document.getElementById('newUnitType');
+    if (newUnitTypeEl) {
+      newUnitTypeEl.innerHTML = '<option value="">Select type…</option>' +
+        types.map(t =>
+          `<option value="${t.unit_type_id}">${escapeHTML(t.type_name)} ($${Number(t.nightly_rate).toFixed(0)}/night)</option>`
+        ).join('');
+    }
+
+    if (!types.length) {
+      container.innerHTML = '<p class="muted">No room types found.</p>';
+      return;
+    }
+
+    let html = `<table>
+      <thead><tr>
+        <th>Photo</th><th>Type</th><th>Rate</th><th>Cap.</th><th>Description</th><th>Amenities</th><th>Edit</th>
+      </tr></thead><tbody>`;
+
+    types.forEach(t => {
+      const thumb = t.photo_url
+        ? `<img src="${escapeHTML(t.photo_url)}" alt="" style="width:64px;height:46px;object-fit:cover;border-radius:6px;display:block">`
+        : `<div style="width:64px;height:46px;background:#f3f4f6;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:22px">📷</div>`;
+      const desc = t.description
+        ? `<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:200px">${escapeHTML(t.description)}</span>`
+        : '<span class="sub-muted">–</span>';
+      const amen = t.amenities
+        ? `<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:150px">${escapeHTML(t.amenities)}</span>`
+        : '<span class="sub-muted">–</span>';
+      html += `<tr>
+        <td>${thumb}</td>
+        <td><strong>${escapeHTML(t.type_name)}</strong></td>
+        <td>$${Number(t.nightly_rate).toFixed(0)}/night</td>
+        <td>👥 ${t.capacity}</td>
+        <td>${desc}</td>
+        <td>${amen}</td>
+        <td><button class="btn-secondary" style="font-size:12px;padding:5px 12px;white-space:nowrap"
+              onclick="openUnitTypeModal(${t.unit_type_id})">Edit</button></td>
+      </tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch {
+    container.textContent = 'Failed to load room types.';
+  }
+}
+
+window.openUnitTypeModal = function(typeId) {
+  const type = _unitTypes.find(t => t.unit_type_id === typeId);
+  if (!type) return;
+
+  document.getElementById('unitTypeModalTitle').textContent = `Edit: ${type.type_name}`;
+  document.getElementById('unitTypeDesc').value       = type.description || '';
+  document.getElementById('unitTypeAmenities').value  = type.amenities   || '';
+  document.getElementById('unitTypeModalMsg').className = 'admin-message';
+  document.getElementById('unitTypeModalMsg').textContent = '';
+
+  const fileInput   = document.getElementById('unitTypePhotoInput');
+  const preview     = document.getElementById('unitTypePhotoPreview');
+  const placeholder = document.getElementById('unitTypePhotoPh');
+  fileInput.value = '';
+  if (type.photo_url) {
+    preview.src = type.photo_url;
+    preview.style.display = '';
+    placeholder.style.display = 'none';
+  } else {
+    preview.style.display = 'none';
+    placeholder.style.display = '';
+  }
+
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      preview.src = ev.target.result;
+      preview.style.display = '';
+      placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const modal = document.getElementById('unitTypeModal');
+  modal.style.display = 'flex';
+  modal._editingTypeId = typeId;
+};
+
+window.closeUnitTypeModal = function() {
+  document.getElementById('unitTypeModal').style.display = 'none';
+};
+
+document.getElementById('unitTypeModalSaveBtn')?.addEventListener('click', async () => {
+  const modal   = document.getElementById('unitTypeModal');
+  const typeId  = modal._editingTypeId;
+  if (!typeId) return;
+
+  const saveBtn = document.getElementById('unitTypeModalSaveBtn');
+  const msgEl   = document.getElementById('unitTypeModalMsg');
+  saveBtn.disabled = true;
+
+  const formData = new FormData();
+  formData.append('description', document.getElementById('unitTypeDesc').value.trim());
+  formData.append('amenities',   document.getElementById('unitTypeAmenities').value.trim());
+  const fileInput = document.getElementById('unitTypePhotoInput');
+  if (fileInput.files[0]) formData.append('photo', fileInput.files[0]);
+
+  try {
+    await apiFetch(`/api/unit-types/${typeId}`, {
+      method: 'PATCH',
+      body: formData,
+      headers: {}  // clear Content-Type so browser sets multipart boundary
+    });
+    msgEl.textContent = 'Room type updated!';
+    msgEl.className = 'admin-message success';
+    setTimeout(() => {
+      closeUnitTypeModal();
+      loadUnitTypes();
+    }, 1200);
+  } catch (err) {
+    msgEl.textContent = err.message;
+    msgEl.className = 'admin-message error';
+  } finally {
+    saveBtn.disabled = false;
+  }
+});
+
 // ── Tickets tab ───────────────────────────────────────────────────────────────
-// All tickets with an inline status updater (open / in_progress / closed)
+// Active tickets (open/in_progress) get an inline status updater.
+// Closed tickets appear in a separate read-only table showing who closed them and when.
+function formatDateTime(val) {
+  if (!val) return '–';
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? String(val) : d.toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+}
+
 async function loadTickets() {
   try {
     const tickets = await apiFetch('/api/tickets');
     document.getElementById('statTickets').textContent =
       tickets.filter(t => t.status === 'open').length;
 
-    if (!tickets.length) {
-      document.getElementById('ticketsTable').textContent = 'No tickets yet.';
-      return;
+    const active = tickets.filter(t => t.status !== 'closed');
+    const closed = tickets.filter(t => t.status === 'closed');
+
+    // ── Active tickets table ──────────────────────────────────────────────
+    if (!active.length) {
+      document.getElementById('ticketsTableActive').innerHTML =
+        '<p style="color:var(--muted);padding:12px 0">No open tickets.</p>';
+    } else {
+      let html = `<table>
+        <thead><tr>
+          <th>#</th><th>Unit</th><th>Type</th><th>Title</th>
+          <th>Reporter</th><th>Status</th><th>Update</th><th>Submitted</th>
+        </tr></thead><tbody>`;
+
+      active.forEach(t => {
+        html += `<tr>
+          <td>#${t.ticket_id}</td>
+          <td>${escapeHTML(t.unit_code)}</td>
+          <td>${escapeHTML(t.ticket_type)}</td>
+          <td>${escapeHTML(t.title)}${t.description
+            ? `<br><span class="sub-muted">${escapeHTML(t.description)}</span>` : ''}</td>
+          <td>${escapeHTML(t.first_name)} ${escapeHTML(t.last_name)}</td>
+          <td>${badge(t.status, t.status)}</td>
+          <td>
+            <select class="inline" onchange="updateTicketStatus(${t.ticket_id},this.value,this)">
+              <option value="open"        ${t.status === 'open'        ? 'selected' : ''}>Open</option>
+              <option value="in_progress" ${t.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+              <option value="closed"                                                     >Close</option>
+            </select>
+          </td>
+          <td>${formatDate(t.created_at)}</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('ticketsTableActive').innerHTML = html;
     }
 
-    let html = `<table>
-      <thead><tr><th>#</th><th>Unit</th><th>Type</th><th>Title</th><th>Reporter</th><th>Status</th><th>Update</th><th>Date</th></tr></thead>
-      <tbody>`;
+    // ── Closed tickets table ──────────────────────────────────────────────
+    const closedSection  = document.getElementById('closedTicketsSection');
+    const toggleWrap     = document.getElementById('closedTicketsToggleWrap');
+    const toggleBtn      = document.getElementById('closedTicketsToggleBtn');
 
-    tickets.forEach(t => {
-      html += `<tr>
-        <td>#${t.ticket_id}</td>
-        <td>${escapeHTML(t.unit_code)}</td>
-        <td>${escapeHTML(t.ticket_type)}</td>
-        <td>${escapeHTML(t.title)}${t.description
-          ? `<br><span class="sub-muted">${escapeHTML(t.description)}</span>` : ''}</td>
-        <td>${escapeHTML(t.first_name)} ${escapeHTML(t.last_name)}</td>
-        <td>${badge(t.status, t.status)}</td>
-        <td>
-          <select class="inline" onchange="updateTicketStatus(${t.ticket_id},this.value,this)">
-            <option value="open" ${t.status === 'open' ? 'selected' : ''}>Open</option>
-            <option value="in_progress" ${t.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
-            <option value="closed" ${t.status === 'closed' ? 'selected' : ''}>Closed</option>
-          </select>
-        </td>
-        <td>${formatDate(t.created_at)}</td>
-      </tr>`;
-    });
+    if (!closed.length) {
+      if (toggleWrap) toggleWrap.style.display = 'none';
+      closedSection.style.display = 'none';
+    } else {
+      if (toggleWrap) toggleWrap.style.display = '';
+      closedSection.style.display = _closedTicketsVisible ? 'block' : 'none';
 
-    html += '</tbody></table>';
-    document.getElementById('ticketsTable').innerHTML = html;
+      if (toggleBtn && !toggleBtn._wired) {
+        toggleBtn._wired = true;
+        toggleBtn.addEventListener('click', () => {
+          _closedTicketsVisible = !_closedTicketsVisible;
+          closedSection.style.display = _closedTicketsVisible ? 'block' : 'none';
+          toggleBtn.textContent = _closedTicketsVisible ? 'Hide Closed Tickets ▲' : 'Show Closed Tickets ▼';
+        });
+      }
+      if (toggleBtn) {
+        toggleBtn.textContent = _closedTicketsVisible ? 'Hide Closed Tickets ▲' : 'Show Closed Tickets ▼';
+      }
+
+      let html = `<table>
+        <thead><tr>
+          <th>#</th><th>Unit</th><th>Type</th><th>Title</th>
+          <th>Reporter</th><th>Closed By</th><th>Closed At</th>
+        </tr></thead><tbody>`;
+
+      closed.forEach(t => {
+        const closerName = t.closed_by_first
+          ? `${escapeHTML(t.closed_by_first)} ${escapeHTML(t.closed_by_last)}`
+          : '<span class="sub-muted">–</span>';
+        html += `<tr>
+          <td>#${t.ticket_id}</td>
+          <td>${escapeHTML(t.unit_code)}</td>
+          <td>${escapeHTML(t.ticket_type)}</td>
+          <td>${escapeHTML(t.title)}${t.description
+            ? `<br><span class="sub-muted">${escapeHTML(t.description)}</span>` : ''}</td>
+          <td>${escapeHTML(t.first_name)} ${escapeHTML(t.last_name)}</td>
+          <td>${closerName}</td>
+          <td style="white-space:nowrap">${formatDateTime(t.closed_at)}</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('ticketsTableClosed').innerHTML = html;
+    }
   } catch (err) {
-    document.getElementById('ticketsTable').textContent = 'Failed to load tickets.';
+    document.getElementById('ticketsTableActive').textContent = 'Failed to load tickets.';
   }
 }
 
@@ -383,10 +744,10 @@ async function loadReviews() {
 
 async function init() {
   await loadProfile();
-  await Promise.all([loadReservations(), loadUnits(), loadTickets(), loadUsers(), loadRevenue(), loadReviews()]);
+  await Promise.all([loadReservations(), loadUnits(), loadUnitTypes(), loadTickets(), loadUsers(), loadRevenue(), loadReviews()]);
 
   wireSearch('searchReservations', 'reservationsTable');
-  wireSearch('searchTickets', 'ticketsTable');
+  wireSearch('searchTickets', 'ticketsTableActive');
   wireSearch('searchUsers', 'usersTable');
 
   // Poll every 10 seconds — tickets and reservations update live

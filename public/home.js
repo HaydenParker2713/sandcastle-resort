@@ -3,7 +3,7 @@
 // and auto-redirecting already-logged-in users to their correct dashboard.
 
 // ── Room card helpers ──────────────────────────────────────────────────────────
-// Pick a gradient background colour by matching keywords in the room type name.
+// Fallback gradient used while the SVG loads or if it fails
 function roomGradient(typeName) {
   const t = typeName.toLowerCase();
   if (t.includes('oceanfront'))  return 'linear-gradient(135deg,#0c4a6e,#0ea5e9)';
@@ -15,15 +15,23 @@ function roomGradient(typeName) {
   return                                'linear-gradient(135deg,#374151,#6b7280)';
 }
 
-// Pick an emoji icon for the room type banner
-function roomEmoji(typeName) {
+// Map room type name to an illustrated SVG scene
+function unitImage(typeName) {
   const t = typeName.toLowerCase();
-  if (t.includes('oceanfront')) return '🌊';
-  if (t.includes('poolside'))   return '🏊';
-  if (t.includes('two bedroom'))return '🏠';
-  if (t.includes('queen'))      return '👑';
-  if (t.includes('studio'))     return '🏖️';
-  return '🛏️';
+  if (t.includes('oceanfront') && !t.includes('studio')) return '/room1.svg';
+  if (t.includes('oceanfront'))                           return '/room2.svg';
+  if (t.includes('poolside') && !t.includes('studio'))   return '/room3.svg';
+  if (t.includes('poolside'))                             return '/room4.svg';
+  if (t.includes('standard suite') && t.includes('main'))return '/room5.svg';
+  if (t.includes('standard studio') && !t.includes('balcony') && t.includes('main')) return '/room6.svg';
+  if (t.includes('queen'))                                return '/room7.svg';
+  if (t.includes('standard studio') && t.includes('balcony') && t.includes('main'))  return '/room8.svg';
+  if (t.includes('small suite'))                          return '/room9.svg';
+  if (t.includes('pool building'))                        return '/room10.svg';
+  if (t === 'studio')                                     return '/room11.svg';
+  if (t.includes('one bedroom'))                          return '/room12.svg';
+  if (t.includes('two bedroom'))                          return '/room13.svg';
+  return '/room5.svg';
 }
 
 // ── Render rooms grid ──────────────────────────────────────────────────────────
@@ -54,11 +62,10 @@ function renderRooms(units) {
     const card = document.createElement('div');
     card.className = 'room-card';
     card.innerHTML = `
-      <div class="room-img" style="background:${roomGradient(t.type_name)}">
-        <div>
-          <div style="font-size:1.8rem;margin-bottom:4px">${roomEmoji(t.type_name)}</div>
-          <div>${t.type_name}</div>
-        </div>
+      <div class="room-img" style="position:relative;overflow:hidden;background:${roomGradient(t.type_name)}">
+        <img src="${t.type_photo_url || unitImage(t.type_name)}" alt="${t.type_name}"
+             style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"
+             onerror="this.remove()">
       </div>
       <div class="room-body">
         <h3>${t.type_name}</h3>
