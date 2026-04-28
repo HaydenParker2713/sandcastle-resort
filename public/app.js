@@ -100,61 +100,6 @@ function formatDate(val) {
 // ── Main DOMContentLoaded ─────────────────────────────────────────────────────
 // Everything below is dashboard-specific and runs only after the DOM is ready.
 document.addEventListener("DOMContentLoaded", async () => {
-  // ── Login / register forms (index.html) ────────────────────────────────────
-  // These forms only exist on index.html; on dashboard.html they are not present.
-  const registerForm = document.getElementById("registerForm");
-  const loginForm = document.getElementById("loginForm");
-
-  if (registerForm) {
-    registerForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const first_name = document.getElementById("regFirstName").value.trim();
-      const last_name = document.getElementById("regLastName").value.trim();
-      const email = document.getElementById("regEmail").value.trim();
-      const password = document.getElementById("regPassword").value;
-
-      if (!first_name || !last_name || !email || !password) {
-        setMessage("Please fill in all registration fields.", "error");
-        return;
-      }
-      setMessage("Creating account...", "info");
-      try {
-        const result = await apiFetch("/api/auth/register", {
-          method: "POST",
-          body: JSON.stringify({ first_name, last_name, email, password })
-        });
-        setMessage(result.message || "Account created successfully.", "success");
-        registerForm.reset();
-      } catch (error) {
-        setMessage(error.message, "error");
-      }
-    });
-  }
-
-  if (loginForm) {
-    loginForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const email = document.getElementById("loginEmail").value.trim();
-      const password = document.getElementById("loginPassword").value;
-      if (!email || !password) {
-        setMessage("Please enter both email and password.", "error");
-        return;
-      }
-      setMessage("Logging in...", "info");
-      try {
-        const result = await apiFetch("/api/auth/login", {
-          method: "POST",
-          body: JSON.stringify({ email, password })
-        });
-        setMessage(result.message || "Login successful.", "success");
-        loginForm.reset();
-        window.location.href = '/dashboard';
-      } catch (error) {
-        setMessage(error.message, "error");
-      }
-    });
-  }
-
   // ── Dashboard section — only runs when #welcomeText exists (dashboard.html) ─
   const welcomeEl = document.getElementById('welcomeText');
   const dashboardMessageEl = document.getElementById('reservationMessage');
@@ -504,12 +449,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         const today   = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Check if any existing booking covers this date
+        // Check if any existing booking covers this date.
+        // Parse as local midnight (not UTC) to match the calendar cell's local Date.
         let isBooked = false;
         bookings.forEach(booking => {
-          const checkIn  = new Date(booking.check_in);
-          const checkOut = new Date(booking.check_out);
-          if (date >= checkIn && date < checkOut) isBooked = true; // check_out day is free (checkout day)
+          const [cy, cm, cd] = booking.check_in.split('-').map(Number);
+          const [oy, om, od] = booking.check_out.split('-').map(Number);
+          const checkIn  = new Date(cy, cm - 1, cd);
+          const checkOut = new Date(oy, om - 1, od);
+          if (date >= checkIn && date < checkOut) isBooked = true;
         });
 
         let className;
@@ -840,14 +788,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         el.style.cssText = 'display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid #e8f2f2;border-radius:10px;margin-bottom:10px;background:#fff;flex-wrap:wrap';
         el.innerHTML = `
           <div>
-            <div style="font-weight:700;color:var(--accent-deep);font-size:14px">${t.unit_code} · ${t.ticket_type}</div>
-            <div style="font-size:14px;margin:3px 0">${t.title}</div>
-            ${t.description ? `<div style="font-size:12px;color:var(--muted)">${t.description}</div>` : ''}
+            <div style="font-weight:700;color:var(--accent-deep);font-size:14px">${escapeHTML(t.unit_code)} · ${escapeHTML(t.ticket_type)}</div>
+            <div style="font-size:14px;margin:3px 0">${escapeHTML(t.title)}</div>
+            ${t.description ? `<div style="font-size:12px;color:var(--muted)">${escapeHTML(t.description)}</div>` : ''}
             <div style="font-size:12px;color:var(--muted);margin-top:4px">${formatDate(t.created_at)}</div>
           </div>
           <span style="padding:4px 12px;border-radius:12px;font-size:12px;font-weight:700;white-space:nowrap;
-            background:${ticketStatusBg[t.status]};color:${ticketStatusColors[t.status]}">
-            ${t.status.replace('_', ' ')}
+            background:${ticketStatusBg[t.status] || '#f3f4f6'};color:${ticketStatusColors[t.status] || '#374151'}">
+            ${escapeHTML(t.status.replace('_', ' '))}
           </span>
         `;
         container.appendChild(el);

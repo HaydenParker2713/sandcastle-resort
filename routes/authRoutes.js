@@ -14,12 +14,18 @@ const loginLimiter = rateLimit({
   message: { error: "Too many login attempts. Please try again in 15 minutes." }
 });
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 router.post("/register", async (req, res) => {
   try {
     const { first_name, last_name, email, password } = req.body;
 
     if (!first_name || !last_name || !email || !password) {
       return res.status(400).json({ error: "All fields are required." });
+    }
+
+    if (!EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: "Invalid email address." });
     }
 
     if (password.length < 8) {
@@ -103,6 +109,9 @@ router.patch("/profile", requireAuth, async (req, res) => {
     const { first_name, last_name, email } = req.body;
     if (!first_name || !last_name || !email) {
       return res.status(400).json({ error: 'All fields are required.' });
+    }
+    if (!EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: 'Invalid email address.' });
     }
     const updated = await authService.updateProfile(req.session.user.user_id, { first_name, last_name, email });
     req.session.user = { ...req.session.user, first_name: updated.first_name, last_name: updated.last_name, email: updated.email };
