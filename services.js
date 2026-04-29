@@ -107,7 +107,7 @@ const unitService = {
   },
 
   async updateUnitTypeDetails(unit_type_id, updates) {
-    const allowed = ['description', 'amenities', 'photo_url'];
+    const allowed = ['description', 'amenities', 'photo_url', 'nightly_rate'];
     const fields  = Object.keys(updates).filter(k => allowed.includes(k));
     if (!fields.length) return false;
     const sql    = `UPDATE unit_types SET ${fields.map(f => `${f} = ?`).join(', ')} WHERE unit_type_id = ?`;

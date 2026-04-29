@@ -101,6 +101,7 @@
     [data-theme="dark"] #unitTypeModal h2,
     [data-theme="dark"] #unitModal h2 { color: #5eead4; }
     [data-theme="dark"] #unitTypeDesc, [data-theme="dark"] #unitTypeAmenities,
+    [data-theme="dark"] #unitTypeRate,
     [data-theme="dark"] #unitModalDesc, [data-theme="dark"] #unitModalRate { background: #0f172a; border-color: #334155; color: #e2e8f0; }
     [data-theme="dark"] #unitTypeModal p,
     [data-theme="dark"] #unitModal p { color: #64748b; }
@@ -419,6 +420,13 @@
           <label class="admin-field-label" for="unitTypeAmenities">Amenities</label>
           <input id="unitTypeAmenities" placeholder="e.g. Ocean view, King bed, Kitchenette, Free Wi-Fi" style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box">
           <p style="margin:4px 0 0;font-size:12px;color:#9ca3af">Comma-separated list</p>
+        </div>
+
+        <div>
+          <label class="admin-field-label" for="unitTypeRate">Base Nightly Rate ($)</label>
+          <input id="unitTypeRate" type="number" min="0" step="0.01" placeholder="e.g. 249.00"
+                 style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box">
+          <p style="margin:4px 0 0;font-size:12px;color:#9ca3af">Default rate for all units of this type (individual units can override)</p>
         </div>
 
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">

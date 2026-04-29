@@ -60,9 +60,14 @@ router.patch('/:id', ...requireRole('admin'), async (req, res) => {
     );
 
     const updates = {};
-    if (req.body.description !== undefined) updates.description = req.body.description.trim() || null;
-    if (req.body.amenities   !== undefined) updates.amenities   = req.body.amenities.trim()   || null;
-    if (req.file)                           updates.photo_url   = `/uploads/units/${req.file.filename}`;
+    if (req.body.description   !== undefined) updates.description  = req.body.description.trim() || null;
+    if (req.body.amenities     !== undefined) updates.amenities    = req.body.amenities.trim()   || null;
+    if (req.body.nightly_rate  !== undefined && req.body.nightly_rate !== '') {
+      const rate = parseFloat(req.body.nightly_rate);
+      if (isNaN(rate) || rate < 0) return res.status(400).json({ error: 'Invalid nightly rate.' });
+      updates.nightly_rate = rate;
+    }
+    if (req.file)                             updates.photo_url    = `/uploads/units/${req.file.filename}`;
 
     if (!Object.keys(updates).length) {
       return res.status(400).json({ error: 'Nothing to update.' });

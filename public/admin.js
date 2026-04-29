@@ -424,6 +424,7 @@ window.openUnitTypeModal = function(typeId) {
   document.getElementById('unitTypeModalTitle').textContent = `Edit: ${type.type_name}`;
   document.getElementById('unitTypeDesc').value       = type.description || '';
   document.getElementById('unitTypeAmenities').value  = type.amenities   || '';
+  document.getElementById('unitTypeRate').value       = type.nightly_rate != null ? Number(type.nightly_rate).toFixed(2) : '';
   document.getElementById('unitTypeModalMsg').className = 'admin-message';
   document.getElementById('unitTypeModalMsg').textContent = '';
 
@@ -471,8 +472,10 @@ document.getElementById('unitTypeModalSaveBtn')?.addEventListener('click', async
   saveBtn.disabled = true;
 
   const formData = new FormData();
-  formData.append('description', document.getElementById('unitTypeDesc').value.trim());
-  formData.append('amenities',   document.getElementById('unitTypeAmenities').value.trim());
+  formData.append('description',  document.getElementById('unitTypeDesc').value.trim());
+  formData.append('amenities',    document.getElementById('unitTypeAmenities').value.trim());
+  const rateVal = document.getElementById('unitTypeRate').value.trim();
+  if (rateVal !== '') formData.append('nightly_rate', rateVal);
   const fileInput = document.getElementById('unitTypePhotoInput');
   if (fileInput.files[0]) formData.append('photo', fileInput.files[0]);
 
