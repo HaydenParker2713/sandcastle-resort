@@ -98,7 +98,55 @@ async function loadProfile() {
 }
 
 // ── Reservations tab ──────────────────────────────────────────────────────────
-// Shows all reservations in a table with a "Mark Paid" button for unpaid invoices.
+// Splits reservations into Active (checked-in now), Future (upcoming), Past (done/cancelled).
+function toDateStr(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val.slice(0, 10);
+  if (val instanceof Date) return val.toISOString().slice(0, 10);
+  return String(val).slice(0, 10);
+}
+
+function reservationTable(rows) {
+  if (!rows.length) return '<p style="color:var(--muted);padding:8px 0;font-size:13px">None.</p>';
+  const COLS = `<th>#</th><th>Guest</th><th>Unit</th><th>Check-in</th><th>Check-out</th>
+    <th>Status</th><th>Invoice</th><th>Amount</th><th>Action</th>`;
+  let html = `<table><thead><tr>${COLS}</tr></thead><tbody>`;
+  rows.forEach(r => {
+    const payBtn = r.invoice_id && r.invoice_status === 'unpaid' && r.status === 'confirmed'
+      ? `<button class="btn-primary" style="font-size:12px;padding:4px 10px;margin-bottom:4px"
+           onclick="markPaid(${r.invoice_id},this)">Mark Paid</button>`
+      : '';
+    const cancelBtn = r.status === 'confirmed'
+      ? `<button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5"
+           onclick="cancelReservation(${r.reservation_id},this)">Cancel</button>`
+      : '';
+    const actions = payBtn || cancelBtn
+      ? `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">${payBtn}${cancelBtn}</div>`
+      : '<span class="sub-muted">–</span>';
+    html += `<tr>
+      <td>#${r.reservation_id}</td>
+      <td>${escapeHTML(r.first_name)} ${escapeHTML(r.last_name)}<br>
+          <span class="sub-muted">${escapeHTML(r.email)}</span></td>
+      <td>${escapeHTML(r.unit_code)}<br>
+          <span class="sub-muted">${escapeHTML(r.type_name)}</span></td>
+      <td>${formatDate(r.check_in)}</td>
+      <td>${formatDate(r.check_out)}</td>
+      <td>${badge(r.status, r.status)}</td>
+      <td>${r.invoice_status ? badge(r.invoice_status, r.invoice_status) : '-'}</td>
+      <td>${r.total_amount ? '$' + Number(r.total_amount).toFixed(2) : '-'}</td>
+      <td>${actions}</td>
+    </tr>`;
+  });
+  return html + '</tbody></table>';
+}
+
+function sectionHeader(title, count, color) {
+  return `<div style="display:flex;align-items:center;gap:10px;margin:20px 0 10px">
+    <h3 style="margin:0;font-size:1rem;color:${color}">${title}</h3>
+    <span style="background:${color}22;color:${color};font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px">${count}</span>
+  </div>`;
+}
+
 async function loadReservations() {
   try {
     const rows = await apiFetch('/api/reservations');
@@ -106,46 +154,28 @@ async function loadReservations() {
     document.getElementById('statUnpaid').textContent =
       rows.filter(r => r.invoice_status === 'unpaid' && r.status === 'confirmed').length;
 
-    if (!rows.length) {
-      document.getElementById('reservationsTable').textContent = 'No reservations yet.';
-      return;
-    }
+    const today = new Date().toISOString().slice(0, 10);
 
-    let html = `<table>
-      <thead><tr>
-        <th>#</th><th>Guest</th><th>Unit</th><th>Check-in</th><th>Check-out</th>
-        <th>Status</th><th>Invoice</th><th>Amount</th><th>Action</th>
-      </tr></thead><tbody>`;
+    const active = rows.filter(r =>
+      r.status === 'confirmed' &&
+      toDateStr(r.check_in) <= today &&
+      toDateStr(r.check_out) >= today
+    );
+    const future = rows.filter(r =>
+      r.status === 'confirmed' && toDateStr(r.check_in) > today
+    );
+    const past = rows.filter(r =>
+      r.status === 'cancelled' || toDateStr(r.check_out) < today
+    );
 
-    rows.forEach(r => {
-      const payBtn = r.invoice_id && r.invoice_status === 'unpaid' && r.status === 'confirmed'
-        ? `<button class="btn-primary" style="font-size:12px;padding:4px 10px;margin-bottom:4px"
-             onclick="markPaid(${r.invoice_id},this)">Mark Paid</button>`
-        : '';
-      const cancelBtn = r.status === 'confirmed'
-        ? `<button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5"
-             onclick="cancelReservation(${r.reservation_id},this)">Cancel</button>`
-        : '';
-      const actions = payBtn || cancelBtn
-        ? `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">${payBtn}${cancelBtn}</div>`
-        : '<span class="sub-muted">–</span>';
-      html += `<tr>
-        <td>#${r.reservation_id}</td>
-        <td>${escapeHTML(r.first_name)} ${escapeHTML(r.last_name)}<br>
-            <span class="sub-muted">${escapeHTML(r.email)}</span></td>
-        <td>${escapeHTML(r.unit_code)}<br>
-            <span class="sub-muted">${escapeHTML(r.type_name)}</span></td>
-        <td>${formatDate(r.check_in)}</td>
-        <td>${formatDate(r.check_out)}</td>
-        <td>${badge(r.status, r.status)}</td>
-        <td>${r.invoice_status ? badge(r.invoice_status, r.invoice_status) : '-'}</td>
-        <td>${r.total_amount ? '$' + Number(r.total_amount).toFixed(2) : '-'}</td>
-        <td>${actions}</td>
-      </tr>`;
-    });
+    document.getElementById('reservationsTable').innerHTML =
+      sectionHeader('🏖️ Active — Checked In Now', active.length, '#0ea5a4') +
+      '<div class="table-wrap">' + reservationTable(active) + '</div>' +
+      sectionHeader('📅 Future — Upcoming', future.length, '#3b82f6') +
+      '<div class="table-wrap">' + reservationTable(future) + '</div>' +
+      sectionHeader('📁 Past — Completed & Cancelled', past.length, '#6b7280') +
+      '<div class="table-wrap">' + reservationTable(past) + '</div>';
 
-    html += '</tbody></table>';
-    document.getElementById('reservationsTable').innerHTML = html;
   } catch (err) {
     document.getElementById('reservationsTable').textContent = 'Failed to load reservations.';
   }
@@ -343,6 +373,13 @@ document.getElementById('addUnitBtn')?.addEventListener('click', async () => {
   if (!code)        { msgEl.textContent = 'Unit code is required.';  msgEl.className = 'admin-message error'; return; }
   if (isNaN(typeId)){ msgEl.textContent = 'Please select a room type.'; msgEl.className = 'admin-message error'; return; }
 
+  // Client-side duplicate check against cached units
+  if (_units.some(u => u.unit_code === code)) {
+    msgEl.textContent = `Unit code "${code}" already exists. Choose a different code.`;
+    msgEl.className = 'admin-message error';
+    return;
+  }
+
   btn.disabled = true;
   try {
     await apiFetch('/api/units', {
@@ -429,8 +466,9 @@ async function loadUnitTypes() {
 
     html += '</tbody></table>';
     container.innerHTML = html;
-  } catch {
-    container.textContent = 'Failed to load room types.';
+  } catch (err) {
+    console.error('loadUnitTypes error:', err);
+    container.innerHTML = `<p style="color:#dc2626;font-size:13px">Failed to load room types: ${escapeHTML(err.message)}</p>`;
   }
 }
 
