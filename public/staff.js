@@ -54,6 +54,29 @@ document.getElementById('staffLogoutBtn').addEventListener('click', async () => 
   window.location.href = '/';
 });
 
+function initStaffTabs() {
+  const buttons = document.querySelectorAll('.dash-tab-btn[data-tab]');
+  if (!buttons.length) return;
+
+  function switchStaffTab(tabId) {
+    const panel = document.getElementById(tabId);
+    if (!panel) return;
+
+    buttons.forEach((button) => {
+      button.classList.toggle('active', button.dataset.tab === tabId);
+    });
+    document.querySelectorAll('.dash-panel').forEach((dashPanel) => {
+      dashPanel.classList.toggle('active', dashPanel.id === tabId);
+    });
+  }
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => switchStaffTab(button.dataset.tab));
+  });
+}
+
+initStaffTabs();
+
 // ── Profile ───────────────────────────────────────────────────────────────────
 // Fetch the current user's name to display in the welcome header.
 // If the API call fails (session expired), redirect to home.

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Staff Dashboard – Sandcastle Resort</title>
   <link rel="stylesheet" href="/styles.css" />
-  <script>if(localStorage.getItem('sc_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+  <script src="/theme-init.js"></script>
   <style>
     .staff-nav { background:#fff; border-bottom:1px solid #e5f0f0; position:sticky; top:0; z-index:200; box-shadow:0 2px 8px rgba(12,74,74,.07); }
     .staff-nav-inner { max-width:1100px; margin:0 auto; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; }
@@ -158,15 +158,5 @@
 
   <script src="/api.js"></script>
   <script src="/staff.js"></script>
-  <script>
-    document.querySelectorAll('.dash-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.dash-tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.dash-panel').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById(btn.dataset.tab).classList.add('active');
-      });
-    });
-  </script>
 </body>
 </html>

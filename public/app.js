@@ -57,8 +57,30 @@ function initAvatarPicker() {
   });
 }
 
+function initDashboardTabs() {
+  const buttons = document.querySelectorAll('.dash-tab-btn[data-panel]');
+  if (!buttons.length) return;
+
+  window.switchDashTab = (panelId) => {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    buttons.forEach((button) => {
+      button.classList.toggle('active', button.dataset.panel === panelId);
+    });
+    document.querySelectorAll('.dash-panel').forEach((dashPanel) => {
+      dashPanel.classList.toggle('active', dashPanel.id === panelId);
+    });
+  };
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => window.switchDashTab(button.dataset.panel));
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initAvatarPicker();
+  initDashboardTabs();
 
   // Toggle button in the nav bar
   const themeToggleBtn = document.getElementById('themeToggleBtn');
