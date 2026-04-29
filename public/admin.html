@@ -181,9 +181,9 @@
           <div><label class="admin-field-label">Unit Code *</label>
             <input id="newUnitCode" placeholder="e.g. A201" maxlength="20"
               style="padding:8px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;width:110px;text-transform:uppercase"></div>
-          <div><label class="admin-field-label">Room Type *</label>
+          <div><label class="admin-field-label">Layout *</label>
             <select id="newUnitType" class="inline" style="padding:8px 12px;font-size:14px">
-              <option value="">Select type…</option>
+              <option value="">Select layout…</option>
             </select></div>
           <div><label class="admin-field-label">Status</label>
             <select id="newUnitStatus" class="inline" style="padding:8px 12px;font-size:14px">
@@ -195,12 +195,6 @@
         </div>
       </div>
 
-      <hr style="margin:28px 0;border:none;border-top:1px solid #e5e7eb" id="unitTypesHr">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-        <h2 style="margin:0">Room Types</h2>
-        <p style="margin:0;font-size:13px;color:#6b7280">Set descriptions, amenities and display photos shown to guests</p>
-      </div>
-      <div id="unitTypesContainer">Loading...</div>
     </div>
 
     <div id="tab-tickets" class="tab-panel card">
@@ -232,6 +226,10 @@
         <div class="stat-card">
           <div class="num" id="statTotalRevenue">–</div>
           <div class="lbl">Total Paid Revenue</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="statAvgRevenuePerGuest">–</div>
+          <div class="lbl">Avg Revenue per Guest</div>
         </div>
         <div class="stat-card">
           <div class="num" id="statAvgRating">–</div>
@@ -344,7 +342,7 @@
                    style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box;text-transform:uppercase">
           </div>
           <div>
-            <label class="admin-field-label unit-modal-label" for="unitModalType">Room Type *</label>
+            <label class="admin-field-label unit-modal-label" for="unitModalType">Layout *</label>
             <select id="unitModalType" style="width:100%;padding:9px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:14px;box-sizing:border-box;background:#fff;color:#111827"></select>
           </div>
         </div>

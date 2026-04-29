@@ -649,7 +649,18 @@ const statsService = {
     const [[avgRating]] = await pool.execute(
       `SELECT ROUND(AVG(rating),1) AS avg_rating, COUNT(*) AS total_reviews FROM reviews`
     );
-    return { revenue, monthly, avgRating };
+    // Average revenue per guest: avg of each guest's total paid spend
+    const [[avgPerGuest]] = await pool.execute(
+      `SELECT ROUND(AVG(guest_total), 2) AS avg_revenue_per_guest
+       FROM (
+         SELECT r.user_id, SUM(i.total_amount) AS guest_total
+         FROM reservations r
+         JOIN invoices i ON r.reservation_id = i.reservation_id
+         WHERE i.status = 'paid'
+         GROUP BY r.user_id
+       ) guest_totals`
+    );
+    return { revenue, monthly, avgRating, avgPerGuest };
   }
 };
 

@@ -232,7 +232,7 @@ function rebuildTypeCacheFromUnits(units) {
   // Populate the Add Unit dropdown
   const el = document.getElementById('newUnitType');
   if (el) {
-    el.innerHTML = '<option value="">Select type…</option>' +
+    el.innerHTML = '<option value="">Select layout…</option>' +
       _unitTypes.map(t =>
         `<option value="${t.unit_type_id}">${escapeHTML(t.type_name)} ($${Number(t.nightly_rate || 0).toFixed(0)}/night)</option>`
       ).join('');
@@ -247,7 +247,7 @@ async function loadUnits() {
 
     let html = `<table>
       <thead><tr>
-        <th>Photo</th><th>Code</th><th>Type</th><th>Rate/Night</th><th>Status</th><th>Edit</th><th>Delete</th>
+        <th>Photo</th><th>Code</th><th>Layout</th><th>Rate/Night</th><th>Status</th><th>Edit</th><th>Delete</th>
       </tr></thead><tbody>`;
 
     units.forEach(u => {
@@ -789,9 +789,13 @@ let revenueChartInstance = null;
 
 async function loadRevenue() {
   try {
-    const { revenue, monthly, avgRating } = await apiFetch('/api/admin/stats');
+    const { revenue, monthly, avgRating, avgPerGuest } = await apiFetch('/api/admin/stats');
     document.getElementById('statTotalRevenue').textContent =
       '$' + Number(revenue.total_revenue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('statAvgRevenuePerGuest').textContent =
+      avgPerGuest?.avg_revenue_per_guest
+        ? '$' + Number(avgPerGuest.avg_revenue_per_guest).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '–';
     document.getElementById('statAvgRating').textContent =
       avgRating.avg_rating ? `${avgRating.avg_rating} ★ (${avgRating.total_reviews})` : '–';
 
@@ -859,9 +863,8 @@ async function loadReviews() {
 
 async function init() {
   await loadProfile();
-  // loadUnits must finish first so _unitTypes cache is ready for loadUnitTypes fallback
   await loadUnits();
-  await Promise.all([loadReservations(), loadUnitTypes(), loadTickets(), loadUsers(), loadRevenue(), loadReviews()]);
+  await Promise.all([loadReservations(), loadTickets(), loadUsers(), loadRevenue(), loadReviews()]);
 
   wireSearch('searchReservations', 'reservationsTable');
   wireSearch('searchTickets', 'ticketsTableActive');
