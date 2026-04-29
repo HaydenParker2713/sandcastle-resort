@@ -66,14 +66,14 @@ router.get('/reviews', requireRole('admin'), async (req, res) => {
 router.get('/audit-log', requireRole('admin'), async (req, res) => {
   try {
     const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 200));
-    const [rows] = await pool.execute(
+    const [rows] = await pool.query(
       `SELECT log_id, actor_id, actor_name, action, target_type, target_id, detail, created_at
-       FROM audit_log ORDER BY created_at DESC LIMIT ?`,
-      [limit]
+       FROM audit_log ORDER BY created_at DESC LIMIT ${limit}`
     );
     res.json(rows);
   } catch (err) {
     console.error('Audit log error:', err);
+    if (err.code === 'ER_NO_SUCH_TABLE') return res.json([]);
     res.status(500).json({ error: 'Server error fetching audit log.' });
   }
 });
