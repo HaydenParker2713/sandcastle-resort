@@ -16,8 +16,7 @@ const unitService = {
   // Returns all units with effective rate (per-unit overrides type rate when set)
   // and both unit-level and type-level display fields.
   async getAllUnits() {
-    const [rows] = await pool.execute(
-      `SELECT u.unit_id, u.unit_code, u.status,
+    const sql = `SELECT u.unit_id, u.unit_code, u.status,
               ut.unit_type_id, ut.type_name, ut.capacity,
               COALESCE(u.nightly_rate, ut.nightly_rate) AS nightly_rate,
               u.nightly_rate   AS unit_nightly_rate,
@@ -29,9 +28,18 @@ const unitService = {
               ut.photo_url     AS type_photo_url
        FROM units u
        JOIN unit_types ut ON u.unit_type_id = ut.unit_type_id
-       ORDER BY u.unit_code`
-    );
-    return rows;
+       ORDER BY u.unit_code`;
+    try {
+      const [rows] = await pool.execute(sql);
+      return rows;
+    } catch (err) {
+      if (err.code === 'ER_BAD_FIELD_ERROR') {
+        await unitService.ensureColumns();
+        const [rows] = await pool.execute(sql);
+        return rows;
+      }
+      throw err;
+    }
   },
 
   async updateUnitDetails(unit_id, updates) {
@@ -98,12 +106,19 @@ const unitService = {
   },
 
   async getAllUnitTypes() {
-    const [rows] = await pool.execute(
-      `SELECT unit_type_id, type_name, capacity, nightly_rate, description, amenities, photo_url
-       FROM unit_types
-       ORDER BY type_name`
-    );
-    return rows;
+    const sql = `SELECT unit_type_id, type_name, capacity, nightly_rate, description, amenities, photo_url
+                 FROM unit_types ORDER BY type_name`;
+    try {
+      const [rows] = await pool.execute(sql);
+      return rows;
+    } catch (err) {
+      if (err.code === 'ER_BAD_FIELD_ERROR') {
+        await unitService.ensureColumns();
+        const [rows] = await pool.execute(sql);
+        return rows;
+      }
+      throw err;
+    }
   },
 
   async updateUnitTypeDetails(unit_type_id, updates) {
