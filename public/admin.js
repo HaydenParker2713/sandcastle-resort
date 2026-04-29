@@ -100,9 +100,16 @@ async function loadReservations() {
 
     rows.forEach(r => {
       const payBtn = r.invoice_id && r.invoice_status === 'unpaid' && r.status === 'confirmed'
-        ? `<button class="btn-primary" style="font-size:12px;padding:4px 10px"
+        ? `<button class="btn-primary" style="font-size:12px;padding:4px 10px;margin-bottom:4px"
              onclick="markPaid(${r.invoice_id},this)">Mark Paid</button>`
         : '';
+      const cancelBtn = r.status === 'confirmed'
+        ? `<button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5"
+             onclick="cancelReservation(${r.reservation_id},this)">Cancel</button>`
+        : '';
+      const actions = payBtn || cancelBtn
+        ? `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">${payBtn}${cancelBtn}</div>`
+        : '<span class="sub-muted">–</span>';
       html += `<tr>
         <td>#${r.reservation_id}</td>
         <td>${escapeHTML(r.first_name)} ${escapeHTML(r.last_name)}<br>
@@ -114,7 +121,7 @@ async function loadReservations() {
         <td>${badge(r.status, r.status)}</td>
         <td>${r.invoice_status ? badge(r.invoice_status, r.invoice_status) : '-'}</td>
         <td>${r.total_amount ? '$' + Number(r.total_amount).toFixed(2) : '-'}</td>
-        <td>${payBtn}</td>
+        <td>${actions}</td>
       </tr>`;
     });
 
@@ -130,6 +137,19 @@ window.markPaid = async (invoice_id, btn) => {
   try {
     await apiFetch(`/api/invoices/${invoice_id}/pay`, { method: 'POST' });
     showMessage('Invoice marked as paid.');
+    await loadReservations();
+  } catch (err) {
+    showMessage(err.message, 'error');
+    btn.disabled = false;
+  }
+};
+
+window.cancelReservation = async (reservation_id, btn) => {
+  if (!confirm(`Cancel reservation #${reservation_id}? This cannot be undone.`)) return;
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/reservations/${reservation_id}/cancel`, { method: 'POST' });
+    showMessage(`Reservation #${reservation_id} cancelled.`);
     await loadReservations();
   } catch (err) {
     showMessage(err.message, 'error');
