@@ -998,13 +998,12 @@ document.getElementById('actForm')?.addEventListener('submit', async (e) => {
   } finally { btn.disabled = false; }
 });
 
-// Load bar/activity/audit data when their tabs are first opened
+// Lazy-load data for tabs that aren't visible on initial page load
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
-    if (tab === 'bar' && !btn._loaded)          { loadBarItems();      btn._loaded = true; }
-    if (tab === 'activitylist' && !btn._loaded)  { loadActivityItems(); btn._loaded = true; }
-    if (tab === 'auditlog' && !btn._loaded)      { loadAuditLog();      btn._loaded = true; }
+    if (tab === 'resort' && !btn._loaded)   { loadBarItems(); loadActivityItems(); btn._loaded = true; }
+    if (tab === 'auditlog' && !btn._loaded) { loadAuditLog();                      btn._loaded = true; }
   });
 });
 
