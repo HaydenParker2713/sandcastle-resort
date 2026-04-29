@@ -65,6 +65,7 @@ CREATE TABLE units (
   nightly_rate  DECIMAL(10,2)   NULL,   -- overrides unit_type rate when set
   PRIMARY KEY (unit_id),
   UNIQUE KEY uq_unit_code (unit_code),
+  INDEX idx_units_status (status),
   CONSTRAINT fk_units_type
     FOREIGN KEY (unit_type_id) REFERENCES unit_types(unit_type_id)
     ON UPDATE CASCADE ON DELETE RESTRICT
@@ -147,6 +148,8 @@ CREATE TABLE invoices (
   updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (invoice_id),
   UNIQUE KEY uq_invoice_reservation (reservation_id),
+  INDEX idx_inv_status      (status),
+  INDEX idx_inv_status_date (status, created_at),
   CONSTRAINT fk_invoice_reservation
     FOREIGN KEY (reservation_id) REFERENCES reservations(reservation_id)
     ON UPDATE CASCADE ON DELETE RESTRICT
