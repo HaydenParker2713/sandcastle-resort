@@ -487,25 +487,27 @@ async function loadUnitTypes() {
   if (!container) return;
   try {
     const types = await apiFetch('/api/unit-types');
-    // Update cache with richer data from the dedicated endpoint
-    _unitTypes = types;
-    // Sync dropdown with fresh data
-    const el = document.getElementById('newUnitType');
-    if (el) {
-      el.innerHTML = '<option value="">Select type…</option>' +
-        types.map(t =>
-          `<option value="${t.unit_type_id}">${escapeHTML(t.type_name)} ($${Number(t.nightly_rate).toFixed(0)}/night)</option>`
-        ).join('');
-    }
-    renderUnitTypesTable(types, container);
+    // Enrich the existing cache with richer data (description, amenities, photo_url)
+    // WITHOUT replacing or removing types — _unitTypes was fully built by loadUnits().
+    const apiMap = {};
+    types.forEach(t => { apiMap[t.unit_type_id] = t; });
+    _unitTypes = _unitTypes.map(cached =>
+      apiMap[cached.unit_type_id] ? { ...cached, ...apiMap[cached.unit_type_id] } : cached
+    );
+    // Add any types the API knows about that aren't in the cache yet
+    types.forEach(t => {
+      if (!_unitTypes.find(c => c.unit_type_id === t.unit_type_id)) _unitTypes.push(t);
+    });
+    _unitTypes.sort((a, b) => a.type_name.localeCompare(b.type_name));
   } catch (err) {
     console.error('GET /api/unit-types failed:', err);
-    // Fall back to type cache already built from the units JOIN
-    if (_unitTypes.length) {
-      renderUnitTypesTable(_unitTypes, container);
-    } else {
-      container.innerHTML = `<p style="color:#dc2626;font-size:13px">Failed to load room types: ${escapeHTML(err.message)}</p>`;
-    }
+    // Cache already populated by loadUnits() — just render from it
+  }
+  // Always render from the (possibly enriched) cache
+  if (_unitTypes.length) {
+    renderUnitTypesTable(_unitTypes, container);
+  } else {
+    container.innerHTML = '<p style="color:#dc2626;font-size:13px">No room types found.</p>';
   }
 }
 
