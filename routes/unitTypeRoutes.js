@@ -7,6 +7,7 @@ const fs      = require('fs');
 const multer  = require('multer');
 const { unitService } = require('../services');
 const { requireRole } = require('../middleware/auth');
+const { logAction } = require('../utils/audit');
 
 const router = express.Router();
 
@@ -75,6 +76,13 @@ router.patch('/:id', ...requireRole('admin'), async (req, res) => {
 
     const ok = await unitService.updateUnitTypeDetails(id, updates);
     if (!ok) return res.status(404).json({ error: 'Unit type not found.' });
+
+    const actor = req.session.user;
+    const logDetail = { ...updates };
+    delete logDetail.photo_url; // don't store file paths in audit log
+    if (req.file) logDetail.photo_updated = true;
+    logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+      'room_type.edit', 'room_type', id, logDetail);
 
     res.json({ message: 'Room type updated.', ...(req.file ? { photo_url: updates.photo_url } : {}) });
   } catch (err) {

@@ -4,6 +4,7 @@ const fs      = require("fs");
 const multer  = require("multer");
 const { unitService } = require("../services");
 const { requireRole } = require("../middleware/auth");
+const { logAction } = require("../utils/audit");
 
 const router = express.Router();
 
@@ -51,6 +52,9 @@ router.post("/", requireRole("admin"), async (req, res) => {
 
     try {
       const insertId = await unitService.createUnit(unit_type_id, unit_code, status || "available");
+      const actor = req.session.user;
+      logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+        'unit.create', 'unit', insertId, { unit_code, unit_type_id, status: status || 'available' });
       res.status(201).json({ message: "Unit created successfully.", unit_id: insertId });
     } catch (error) {
       if (error && error.code === "ER_DUP_ENTRY") {
@@ -89,6 +93,9 @@ router.patch("/:id/status", requireRole("admin"), async (req, res) => {
     }
     const ok = await unitService.updateUnitStatus(id, status);
     if (!ok) return res.status(404).json({ error: "Unit not found." });
+    const actor = req.session.user;
+    logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+      'unit.status_change', 'unit', id, { status });
     res.json({ message: "Unit status updated." });
   } catch (error) {
     console.error("Update unit status error:", error);
@@ -135,6 +142,9 @@ router.patch("/:id/details", ...requireRole("admin"), async (req, res) => {
 
     const ok = await unitService.updateUnitDetails(id, updates);
     if (!ok) return res.status(404).json({ error: "Unit not found." });
+    const actor = req.session.user;
+    logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+      'unit.edit', 'unit', id, updates);
     res.json({ message: "Unit updated." });
   } catch (err) {
     if (err.code === "DUPLICATE_CODE") return res.status(409).json({ error: err.message });
@@ -150,6 +160,9 @@ router.delete("/:id", ...requireRole("admin"), async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ error: "Invalid unit ID." });
     const ok = await unitService.deleteUnit(id);
     if (!ok) return res.status(404).json({ error: "Unit not found." });
+    const actor = req.session.user;
+    logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+      'unit.delete', 'unit', id);
     res.json({ message: "Unit deleted." });
   } catch (err) {
     if (err.code === "HAS_RESERVATIONS") return res.status(409).json({ error: err.message });

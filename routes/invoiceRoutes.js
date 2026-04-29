@@ -1,6 +1,7 @@
 const express = require('express');
 const { invoiceService } = require('../services');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { logAction } = require('../utils/audit');
 
 const router = express.Router();
 
@@ -31,6 +32,9 @@ router.post('/:id/pay', requireRole('admin'), async (req, res) => {
 
     const ok = await invoiceService.markInvoicePaid(id);
     if (!ok) return res.status(404).json({ error: 'Invoice not found.' });
+    const actor = req.session.user;
+    logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+      'invoice.paid', 'invoice', id);
     res.json({ message: 'Invoice marked as paid.' });
   } catch (err) {
     console.error('Mark invoice paid error:', err);

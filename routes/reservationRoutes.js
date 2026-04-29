@@ -6,6 +6,7 @@ const rateLimit  = require('express-rate-limit');
 const { reservationService } = require('../services');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { sendBookingConfirmation } = require('../utils/email');
+const { logAction } = require('../utils/audit');
 
 // Limit reservation creation to 20 per hour per IP to prevent abuse
 const createLimiter = rateLimit({
@@ -117,6 +118,10 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
     try {
       const ok = await reservationService.cancelReservation(reservation_id, user_id, isAdmin);
       if (!ok) return res.status(404).json({ error: 'Reservation not found.' });
+      const actor = req.session.user;
+      logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+        'reservation.cancel', 'reservation', reservation_id,
+        { cancelled_by_role: actor.role_name });
       res.json({ message: 'Reservation cancelled.' });
     } catch (err) {
       if (err && err.code === 'NOT_ALLOWED') return res.status(403).json({ error: 'Not allowed.' });

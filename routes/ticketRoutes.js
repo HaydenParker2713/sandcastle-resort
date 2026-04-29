@@ -6,6 +6,7 @@ const express   = require('express');
 const rateLimit = require('express-rate-limit');
 const { ticketService } = require('../services');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { logAction } = require('../utils/audit');
 
 // Limit ticket creation to 30 per hour per IP to prevent spam
 const createLimiter = rateLimit({
@@ -80,6 +81,9 @@ router.patch('/:id', requireRole('admin', 'staff'), async (req, res) => {
     }
     const ok = await ticketService.updateTicketStatus(id, status, req.session.user.user_id);
     if (!ok) return res.status(404).json({ error: 'Ticket not found.' });
+    const actor = req.session.user;
+    logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+      'ticket.status_change', 'ticket', id, { status });
     res.json({ message: 'Ticket updated.' });
   } catch (err) {
     console.error('Update ticket error:', err);

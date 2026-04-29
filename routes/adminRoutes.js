@@ -1,6 +1,8 @@
 const express = require('express');
 const { authService, statsService, reviewService } = require('../services');
 const { requireRole } = require('../middleware/auth');
+const { pool } = require('../config/db');
+const { logAction } = require('../utils/audit');
 
 const router = express.Router();
 
@@ -30,6 +32,10 @@ router.patch('/users/:id/role', requireRole('admin'), async (req, res) => {
     }
 
     await authService.updateUserRole(target_id, role_name);
+    const actor = req.session.user;
+    logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+      'user.role_change', 'user', target_id,
+      { from: target.role_name, to: role_name, target_email: target.email });
     res.json({ message: `Role updated to ${role_name}.` });
   } catch (err) {
     if (err.code === 'INVALID_ROLE') return res.status(400).json({ error: err.message });
@@ -54,6 +60,21 @@ router.get('/reviews', requireRole('admin'), async (req, res) => {
     res.json(reviews);
   } catch (err) {
     res.status(500).json({ error: 'Server error fetching reviews.' });
+  }
+});
+
+router.get('/audit-log', requireRole('admin'), async (req, res) => {
+  try {
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 200));
+    const [rows] = await pool.execute(
+      `SELECT log_id, actor_id, actor_name, action, target_type, target_id, detail, created_at
+       FROM audit_log ORDER BY created_at DESC LIMIT ?`,
+      [limit]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Audit log error:', err);
+    res.status(500).json({ error: 'Server error fetching audit log.' });
   }
 });
 

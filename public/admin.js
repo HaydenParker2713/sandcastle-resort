@@ -998,11 +998,69 @@ document.getElementById('actForm')?.addEventListener('submit', async (e) => {
   } finally { btn.disabled = false; }
 });
 
-// Load bar/activity data when their tabs are first opened
+// Load bar/activity/audit data when their tabs are first opened
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
-    if (tab === 'bar' && !btn._loaded)        { loadBarItems();      btn._loaded = true; }
-    if (tab === 'activitylist' && !btn._loaded) { loadActivityItems(); btn._loaded = true; }
+    if (tab === 'bar' && !btn._loaded)          { loadBarItems();      btn._loaded = true; }
+    if (tab === 'activitylist' && !btn._loaded)  { loadActivityItems(); btn._loaded = true; }
+    if (tab === 'auditlog' && !btn._loaded)      { loadAuditLog();      btn._loaded = true; }
   });
 });
+
+/* ── Audit Log ────────────────────────────────────────────────────────────── */
+const ACTION_LABELS = {
+  'reservation.cancel':  'Cancelled Reservation',
+  'invoice.paid':        'Marked Invoice Paid',
+  'user.role_change':    'Changed User Role',
+  'unit.create':         'Created Unit',
+  'unit.edit':           'Edited Unit',
+  'unit.status_change':  'Changed Unit Status',
+  'unit.delete':         'Deleted Unit',
+  'ticket.status_change':'Updated Ticket Status',
+  'room_type.edit':      'Edited Room Type',
+};
+
+async function loadAuditLog(force = false) {
+  const el = document.getElementById('auditLogTable');
+  if (!el) return;
+  el.innerHTML = '<p class="muted" style="font-size:14px">Loading…</p>';
+  try {
+    const rows = await apiFetch('/api/admin/audit-log?limit=200');
+    if (!rows.length) {
+      el.innerHTML = '<p class="muted" style="font-size:14px">No audit entries yet.</p>';
+      return;
+    }
+    const html = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="text-align:left;border-bottom:2px solid #e5e7eb">
+            <th style="padding:8px 10px;white-space:nowrap">Time</th>
+            <th style="padding:8px 10px">Actor</th>
+            <th style="padding:8px 10px">Action</th>
+            <th style="padding:8px 10px">Target</th>
+            <th style="padding:8px 10px">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => {
+            const ts = new Date(r.created_at).toLocaleString();
+            const label = ACTION_LABELS[r.action] || r.action;
+            const detail = r.detail ? Object.entries(typeof r.detail === 'string' ? JSON.parse(r.detail) : r.detail)
+              .map(([k, v]) => `<span style="color:#6b7280">${escapeHTML(k)}:</span> ${escapeHTML(String(v))}`)
+              .join(' &nbsp;·&nbsp; ') : '—';
+            return `<tr style="border-bottom:1px solid #f1f5f9">
+              <td style="padding:7px 10px;white-space:nowrap;color:#6b7280">${escapeHTML(ts)}</td>
+              <td style="padding:7px 10px;font-weight:500">${escapeHTML(r.actor_name || 'System')}</td>
+              <td style="padding:7px 10px">${escapeHTML(label)}</td>
+              <td style="padding:7px 10px;color:#6b7280">${escapeHTML(r.target_type)} #${escapeHTML(String(r.target_id))}</td>
+              <td style="padding:7px 10px;font-size:12px">${detail}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+    el.innerHTML = html;
+  } catch (err) {
+    el.innerHTML = `<p style="color:#dc2626;font-size:13px">Failed to load audit log: ${escapeHTML(err.message)}</p>`;
+  }
+}
