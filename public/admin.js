@@ -7,6 +7,25 @@ let _closedTicketsVisible = false;
 let _unitTypes = [];
 let _units     = [];
 
+// Maps room type name → illustrated SVG (matches guest-facing home.js / app.js)
+function unitImage(typeName) {
+  const t = (typeName || '').toLowerCase();
+  if (t.includes('oceanfront') && !t.includes('studio')) return '/room1.svg';
+  if (t.includes('oceanfront'))                           return '/room2.svg';
+  if (t.includes('poolside') && !t.includes('studio'))   return '/room3.svg';
+  if (t.includes('poolside'))                             return '/room4.svg';
+  if (t.includes('standard suite') && t.includes('main'))return '/room5.svg';
+  if (t.includes('standard studio') && !t.includes('balcony') && t.includes('main')) return '/room6.svg';
+  if (t.includes('queen'))                                return '/room7.svg';
+  if (t.includes('standard studio') && t.includes('balcony') && t.includes('main'))  return '/room8.svg';
+  if (t.includes('small suite'))                          return '/room9.svg';
+  if (t.includes('pool building'))                        return '/room10.svg';
+  if (t === 'studio')                                     return '/room11.svg';
+  if (t.includes('one bedroom'))                          return '/room12.svg';
+  if (t.includes('two bedroom'))                          return '/room13.svg';
+  return '/room5.svg';
+}
+
 // ── Theme init ────────────────────────────────────────────────────────────────
 // Applied immediately (IIFE) to prevent a flash of the wrong colour scheme
 (function initAdminTheme() {
@@ -169,11 +188,10 @@ async function loadUnits() {
       </tr></thead><tbody>`;
 
     units.forEach(u => {
-      const thumb = u.unit_photo_url
-        ? `<img src="${escapeHTML(u.unit_photo_url)}" alt="" style="width:56px;height:40px;object-fit:cover;border-radius:5px;display:block">`
-        : u.type_photo_url
-          ? `<img src="${escapeHTML(u.type_photo_url)}" alt="" style="width:56px;height:40px;object-fit:cover;border-radius:5px;display:block;opacity:.5" title="Room type photo">`
-          : `<div style="width:56px;height:40px;background:#f3f4f6;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:18px">📷</div>`;
+      const photoSrc = u.unit_photo_url || u.type_photo_url || unitImage(u.type_name);
+      const thumb = `<img src="${escapeHTML(photoSrc)}" alt="${escapeHTML(u.type_name)}"
+          style="width:56px;height:40px;object-fit:cover;border-radius:5px;display:block"
+          onerror="this.src='${unitImage(u.type_name)}'">`;
       const rateLabel = u.unit_nightly_rate
         ? `$${Number(u.unit_nightly_rate).toFixed(2)} <span style="font-size:11px;color:var(--muted)">(custom)</span>`
         : `$${Number(u.nightly_rate).toFixed(2)}`;
@@ -237,12 +255,10 @@ window.openUnitModal = function(unitId) {
   const preview     = document.getElementById('unitModalPhotoPreview');
   const placeholder = document.getElementById('unitModalPhotoPh');
   fileInput.value = '';
-  const currentPhoto = unit.unit_photo_url || unit.type_photo_url;
-  if (currentPhoto) {
-    preview.src = currentPhoto; preview.style.display = ''; placeholder.style.display = 'none';
-  } else {
-    preview.style.display = 'none'; placeholder.style.display = '';
-  }
+  const currentPhoto = unit.unit_photo_url || unit.type_photo_url || unitImage(unit.type_name);
+  preview.src = currentPhoto;
+  preview.style.display = '';
+  placeholder.style.display = 'none';
   fileInput.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -389,9 +405,10 @@ async function loadUnitTypes() {
       </tr></thead><tbody>`;
 
     types.forEach(t => {
-      const thumb = t.photo_url
-        ? `<img src="${escapeHTML(t.photo_url)}" alt="" style="width:64px;height:46px;object-fit:cover;border-radius:6px;display:block">`
-        : `<div style="width:64px;height:46px;background:#f3f4f6;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:22px">📷</div>`;
+      const typeSrc = t.photo_url || unitImage(t.type_name);
+      const thumb = `<img src="${escapeHTML(typeSrc)}" alt="${escapeHTML(t.type_name)}"
+          style="width:64px;height:46px;object-fit:cover;border-radius:6px;display:block"
+          onerror="this.src='${unitImage(t.type_name)}'">`;
       const desc = t.description
         ? `<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:200px">${escapeHTML(t.description)}</span>`
         : '<span class="sub-muted">–</span>';
@@ -432,14 +449,9 @@ window.openUnitTypeModal = function(typeId) {
   const preview     = document.getElementById('unitTypePhotoPreview');
   const placeholder = document.getElementById('unitTypePhotoPh');
   fileInput.value = '';
-  if (type.photo_url) {
-    preview.src = type.photo_url;
-    preview.style.display = '';
-    placeholder.style.display = 'none';
-  } else {
-    preview.style.display = 'none';
-    placeholder.style.display = '';
-  }
+  preview.src = type.photo_url || unitImage(type.type_name);
+  preview.style.display = '';
+  placeholder.style.display = 'none';
 
   fileInput.onchange = (e) => {
     const file = e.target.files[0];
