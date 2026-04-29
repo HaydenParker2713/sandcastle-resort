@@ -210,28 +210,31 @@ window.cancelReservation = async (reservation_id, btn) => {
 // Builds _unitTypes from the units JOIN response so the dropdown and room-types
 // section always work even if GET /api/unit-types is unavailable.
 function rebuildTypeCacheFromUnits(units) {
+  // Deduplicate by type_name — we know this is always correct from the JOIN,
+  // even if unit_type_id comes back inconsistently from MySQL2.
   const seen = {};
   units.forEach(u => {
-    if (!seen[u.unit_type_id]) {
-      seen[u.unit_type_id] = {
+    if (!u.type_name) return;
+    if (!seen[u.type_name]) {
+      seen[u.type_name] = {
         unit_type_id: u.unit_type_id,
         type_name:    u.type_name,
         capacity:     u.capacity,
-        nightly_rate: u.type_nightly_rate ?? u.nightly_rate,
-        description:  u.type_description  ?? null,
-        amenities:    u.type_amenities    ?? null,
-        photo_url:    u.type_photo_url    ?? null
+        nightly_rate: (u.type_nightly_rate != null ? u.type_nightly_rate : u.nightly_rate),
+        description:  u.type_description  || null,
+        amenities:    u.type_amenities    || null,
+        photo_url:    u.type_photo_url    || null
       };
     }
   });
   _unitTypes = Object.values(seen).sort((a, b) => a.type_name.localeCompare(b.type_name));
 
-  // Populate the Add Unit dropdown from this cache
+  // Populate the Add Unit dropdown
   const el = document.getElementById('newUnitType');
   if (el) {
     el.innerHTML = '<option value="">Select type…</option>' +
       _unitTypes.map(t =>
-        `<option value="${t.unit_type_id}">${escapeHTML(t.type_name)} ($${Number(t.nightly_rate).toFixed(0)}/night)</option>`
+        `<option value="${t.unit_type_id}">${escapeHTML(t.type_name)} ($${Number(t.nightly_rate || 0).toFixed(0)}/night)</option>`
       ).join('');
   }
 }

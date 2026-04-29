@@ -106,16 +106,28 @@ const unitService = {
   },
 
   async getAllUnitTypes() {
-    const sql = `SELECT unit_type_id, type_name, capacity, nightly_rate, description, amenities, photo_url
-                 FROM unit_types ORDER BY type_name`;
+    // Try with optional columns first; if they don't exist yet, migrate then retry;
+    // if anything else fails, fall back to just the core columns so the endpoint
+    // always returns all room types rather than an error.
+    const fullSql = `SELECT unit_type_id, type_name, capacity, nightly_rate,
+                            description, amenities, photo_url
+                     FROM unit_types ORDER BY type_name`;
+    const coreSql = `SELECT unit_type_id, type_name, capacity, nightly_rate,
+                            NULL AS description, NULL AS amenities, NULL AS photo_url
+                     FROM unit_types ORDER BY type_name`;
     try {
-      const [rows] = await pool.execute(sql);
+      const [rows] = await pool.execute(fullSql);
       return rows;
     } catch (err) {
       if (err.code === 'ER_BAD_FIELD_ERROR') {
-        await unitService.ensureColumns();
-        const [rows] = await pool.execute(sql);
-        return rows;
+        try {
+          await unitService.ensureColumns();
+          const [rows] = await pool.execute(fullSql);
+          return rows;
+        } catch (_) {
+          const [rows] = await pool.execute(coreSql);
+          return rows;
+        }
       }
       throw err;
     }
