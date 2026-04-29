@@ -1025,7 +1025,17 @@ async function loadAuditLog(force = false) {
   if (!el) return;
   el.innerHTML = '<p class="muted" style="font-size:14px">Loading…</p>';
   try {
-    const rows = await apiFetch('/api/admin/audit-log?limit=200');
+    const res  = await fetch('/api/admin/audit-log?limit=200', { credentials: 'same-origin' });
+    const text = await res.text();
+    let rows;
+    try { rows = JSON.parse(text); } catch {
+      el.innerHTML = `<p style="color:#dc2626;font-size:13px">HTTP ${res.status}: ${escapeHTML(text.slice(0, 200))}</p>`;
+      return;
+    }
+    if (!res.ok) {
+      el.innerHTML = `<p style="color:#dc2626;font-size:13px">HTTP ${res.status}: ${escapeHTML(rows.error || text.slice(0, 200))}</p>`;
+      return;
+    }
     if (!rows.length) {
       el.innerHTML = '<p class="muted" style="font-size:14px">No audit entries yet.</p>';
       return;
@@ -1060,6 +1070,6 @@ async function loadAuditLog(force = false) {
       </table>`;
     el.innerHTML = html;
   } catch (err) {
-    el.innerHTML = `<p style="color:#dc2626;font-size:13px">Failed to load audit log: ${escapeHTML(err.message)}</p>`;
+    el.innerHTML = `<p style="color:#dc2626;font-size:13px">Network error: ${escapeHTML(err.message)}</p>`;
   }
 }
