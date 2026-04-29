@@ -33,6 +33,7 @@ const unitTypeRoutes        = require("./routes/unitTypeRoutes");
 
 // Services that need to create their DB tables on first run
 const { eventService, barService, activityListService, unitService } = require("./services");
+const { ensureAuditTable } = require("./utils/audit");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -174,6 +175,7 @@ async function startServer() {
     await eventService.ensureTable();
     await barService.ensureTable();
     await activityListService.ensureTable();
+    await ensureAuditTable();
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
