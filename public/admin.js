@@ -207,10 +207,40 @@ window.cancelReservation = async (reservation_id, btn) => {
 };
 
 // ── Units tab ─────────────────────────────────────────────────────────────────
+// Builds _unitTypes from the units JOIN response so the dropdown and room-types
+// section always work even if GET /api/unit-types is unavailable.
+function rebuildTypeCacheFromUnits(units) {
+  const seen = {};
+  units.forEach(u => {
+    if (!seen[u.unit_type_id]) {
+      seen[u.unit_type_id] = {
+        unit_type_id: u.unit_type_id,
+        type_name:    u.type_name,
+        capacity:     u.capacity,
+        nightly_rate: u.type_nightly_rate ?? u.nightly_rate,
+        description:  u.type_description  ?? null,
+        amenities:    u.type_amenities    ?? null,
+        photo_url:    u.type_photo_url    ?? null
+      };
+    }
+  });
+  _unitTypes = Object.values(seen).sort((a, b) => a.type_name.localeCompare(b.type_name));
+
+  // Populate the Add Unit dropdown from this cache
+  const el = document.getElementById('newUnitType');
+  if (el) {
+    el.innerHTML = '<option value="">Select type…</option>' +
+      _unitTypes.map(t =>
+        `<option value="${t.unit_type_id}">${escapeHTML(t.type_name)} ($${Number(t.nightly_rate).toFixed(0)}/night)</option>`
+      ).join('');
+  }
+}
+
 async function loadUnits() {
   try {
     const units = await apiFetch('/api/units');
     _units = units;
+    rebuildTypeCacheFromUnits(units);   // always populate type cache from unit data
 
     let html = `<table>
       <thead><tr>
@@ -415,60 +445,67 @@ window.updateUnitStatus = async (unit_id, status, select) => {
 };
 
 // ── Unit Types tab section ────────────────────────────────────────────────────
-// Lets admin set description, amenities, and display photo per room type.
+// Renders the room types management table.
+// Tries GET /api/unit-types first (gives description/amenities from DB).
+// If that fails, renders from the _unitTypes cache already built by loadUnits().
+function renderUnitTypesTable(types, container) {
+  if (!types.length) {
+    container.innerHTML = '<p class="muted">No room types found.</p>';
+    return;
+  }
+  let html = `<table>
+    <thead><tr>
+      <th>Photo</th><th>Type</th><th>Rate</th><th>Cap.</th><th>Description</th><th>Amenities</th><th>Edit</th>
+    </tr></thead><tbody>`;
+  types.forEach(t => {
+    const typeSrc = t.photo_url || unitImage(t.type_name);
+    const thumb = `<img src="${escapeHTML(typeSrc)}" alt="${escapeHTML(t.type_name)}"
+        style="width:64px;height:46px;object-fit:cover;border-radius:6px;display:block"
+        onerror="this.src='${unitImage(t.type_name)}'">`;
+    const desc = t.description
+      ? `<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:200px">${escapeHTML(t.description)}</span>`
+      : '<span class="sub-muted">–</span>';
+    const amen = t.amenities
+      ? `<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:150px">${escapeHTML(t.amenities)}</span>`
+      : '<span class="sub-muted">–</span>';
+    html += `<tr>
+      <td>${thumb}</td>
+      <td><strong>${escapeHTML(t.type_name)}</strong></td>
+      <td>$${Number(t.nightly_rate).toFixed(0)}/night</td>
+      <td>👥 ${t.capacity}</td>
+      <td>${desc}</td>
+      <td>${amen}</td>
+      <td><button class="btn-secondary" style="font-size:12px;padding:5px 12px;white-space:nowrap"
+            onclick="openUnitTypeModal(${t.unit_type_id})">Edit</button></td>
+    </tr>`;
+  });
+  container.innerHTML = html + '</tbody></table>';
+}
+
 async function loadUnitTypes() {
   const container = document.getElementById('unitTypesContainer');
   if (!container) return;
   try {
     const types = await apiFetch('/api/unit-types');
+    // Update cache with richer data from the dedicated endpoint
     _unitTypes = types;
-
-    const newUnitTypeEl = document.getElementById('newUnitType');
-    if (newUnitTypeEl) {
-      newUnitTypeEl.innerHTML = '<option value="">Select type…</option>' +
+    // Sync dropdown with fresh data
+    const el = document.getElementById('newUnitType');
+    if (el) {
+      el.innerHTML = '<option value="">Select type…</option>' +
         types.map(t =>
           `<option value="${t.unit_type_id}">${escapeHTML(t.type_name)} ($${Number(t.nightly_rate).toFixed(0)}/night)</option>`
         ).join('');
     }
-
-    if (!types.length) {
-      container.innerHTML = '<p class="muted">No room types found.</p>';
-      return;
-    }
-
-    let html = `<table>
-      <thead><tr>
-        <th>Photo</th><th>Type</th><th>Rate</th><th>Cap.</th><th>Description</th><th>Amenities</th><th>Edit</th>
-      </tr></thead><tbody>`;
-
-    types.forEach(t => {
-      const typeSrc = t.photo_url || unitImage(t.type_name);
-      const thumb = `<img src="${escapeHTML(typeSrc)}" alt="${escapeHTML(t.type_name)}"
-          style="width:64px;height:46px;object-fit:cover;border-radius:6px;display:block"
-          onerror="this.src='${unitImage(t.type_name)}'">`;
-      const desc = t.description
-        ? `<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:200px">${escapeHTML(t.description)}</span>`
-        : '<span class="sub-muted">–</span>';
-      const amen = t.amenities
-        ? `<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:150px">${escapeHTML(t.amenities)}</span>`
-        : '<span class="sub-muted">–</span>';
-      html += `<tr>
-        <td>${thumb}</td>
-        <td><strong>${escapeHTML(t.type_name)}</strong></td>
-        <td>$${Number(t.nightly_rate).toFixed(0)}/night</td>
-        <td>👥 ${t.capacity}</td>
-        <td>${desc}</td>
-        <td>${amen}</td>
-        <td><button class="btn-secondary" style="font-size:12px;padding:5px 12px;white-space:nowrap"
-              onclick="openUnitTypeModal(${t.unit_type_id})">Edit</button></td>
-      </tr>`;
-    });
-
-    html += '</tbody></table>';
-    container.innerHTML = html;
+    renderUnitTypesTable(types, container);
   } catch (err) {
-    console.error('loadUnitTypes error:', err);
-    container.innerHTML = `<p style="color:#dc2626;font-size:13px">Failed to load room types: ${escapeHTML(err.message)}</p>`;
+    console.error('GET /api/unit-types failed:', err);
+    // Fall back to type cache already built from the units JOIN
+    if (_unitTypes.length) {
+      renderUnitTypesTable(_unitTypes, container);
+    } else {
+      container.innerHTML = `<p style="color:#dc2626;font-size:13px">Failed to load room types: ${escapeHTML(err.message)}</p>`;
+    }
   }
 }
 
@@ -817,7 +854,9 @@ async function loadReviews() {
 
 async function init() {
   await loadProfile();
-  await Promise.all([loadReservations(), loadUnits(), loadUnitTypes(), loadTickets(), loadUsers(), loadRevenue(), loadReviews()]);
+  // loadUnits must finish first so _unitTypes cache is ready for loadUnitTypes fallback
+  await loadUnits();
+  await Promise.all([loadReservations(), loadUnitTypes(), loadTickets(), loadUsers(), loadRevenue(), loadReviews()]);
 
   wireSearch('searchReservations', 'reservationsTable');
   wireSearch('searchTickets', 'ticketsTableActive');
