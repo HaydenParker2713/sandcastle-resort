@@ -1,4 +1,79 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
-  <rect width="600" height="400" fill="#7c3aed"/>
-  <text x="50%" y="50%" fill="#fff" font-size="22" font-family="Arial" text-anchor="middle">Standard Studio - Main</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="sky6" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="45%" stop-color="#0369a1"/>
+      <stop offset="75%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#fed7aa"/>
+    </linearGradient>
+    <linearGradient id="garden6" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#14532d"/>
+    </linearGradient>
+    <linearGradient id="wall6" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+  </defs>
+  <!-- Sky -->
+  <rect width="600" height="230" fill="url(#sky6)"/>
+  <!-- Sun low on horizon -->
+  <circle cx="300" cy="225" r="55" fill="#fed84b" opacity="0.3"/>
+  <circle cx="300" cy="225" r="38" fill="#fef08a" opacity="0.6"/>
+  <!-- Horizon glow -->
+  <ellipse cx="300" cy="228" rx="300" ry="30" fill="#fb923c" opacity="0.25"/>
+  <!-- Courtyard wall -->
+  <rect y="222" width="600" height="20" fill="#d4c4a8"/>
+  <!-- Courtyard ground -->
+  <rect y="240" width="600" height="160" fill="#e8d5b0"/>
+  <!-- Stone tiles -->
+  <line x1="0" y1="266" x2="600" y2="266" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="0" y1="292" x2="600" y2="292" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="0" y1="318" x2="600" y2="318" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="0" y1="344" x2="600" y2="344" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="0" y1="370" x2="600" y2="370" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="80" y1="240" x2="80" y2="400" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="160" y1="240" x2="160" y2="400" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="240" y1="240" x2="240" y2="400" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="320" y1="240" x2="320" y2="400" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="400" y1="240" x2="400" y2="400" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="480" y1="240" x2="480" y2="400" stroke="#c9b88a" stroke-width="1"/>
+  <line x1="560" y1="240" x2="560" y2="400" stroke="#c9b88a" stroke-width="1"/>
+  <!-- Garden bed left -->
+  <rect x="0" y="240" width="120" height="160" fill="url(#garden6)" opacity="0.85"/>
+  <ellipse cx="30" cy="245" rx="30" ry="12" fill="#22c55e" opacity="0.7"/>
+  <ellipse cx="75" cy="242" rx="28" ry="11" fill="#15803d" opacity="0.7"/>
+  <!-- Hibiscus flowers left -->
+  <circle cx="22" cy="305" r="8" fill="#f43f5e"/>
+  <circle cx="22" cy="305" r="4" fill="#fbbf24"/>
+  <circle cx="55" cy="318" r="8" fill="#f43f5e"/>
+  <circle cx="55" cy="318" r="4" fill="#fbbf24"/>
+  <circle cx="88" cy="296" r="8" fill="#fb923c"/>
+  <circle cx="88" cy="296" r="4" fill="#fbbf24"/>
+  <!-- Garden bed right -->
+  <rect x="480" y="240" width="120" height="160" fill="url(#garden6)" opacity="0.85"/>
+  <ellipse cx="510" cy="245" rx="28" ry="11" fill="#22c55e" opacity="0.7"/>
+  <ellipse cx="555" cy="242" rx="30" ry="12" fill="#15803d" opacity="0.7"/>
+  <!-- Hibiscus flowers right -->
+  <circle cx="508" cy="298" r="8" fill="#fb923c"/>
+  <circle cx="508" cy="298" r="4" fill="#fbbf24"/>
+  <circle cx="540" cy="316" r="8" fill="#f43f5e"/>
+  <circle cx="540" cy="316" r="4" fill="#fbbf24"/>
+  <circle cx="572" cy="302" r="8" fill="#f43f5e"/>
+  <circle cx="572" cy="302" r="4" fill="#fbbf24"/>
+  <!-- Fountain -->
+  <ellipse cx="300" cy="330" rx="55" ry="18" fill="#93c5fd" opacity="0.65"/>
+  <ellipse cx="300" cy="330" rx="55" ry="18" fill="none" stroke="#60a5fa" stroke-width="2"/>
+  <rect x="294" y="290" width="12" height="42" fill="#d4c4a8" rx="3"/>
+  <!-- Fountain spray -->
+  <path d="M300,290 Q285,275 278,262" stroke="#93c5fd" stroke-width="2" fill="none" opacity="0.7"/>
+  <path d="M300,290 Q300,272 300,260" stroke="#93c5fd" stroke-width="2" fill="none" opacity="0.7"/>
+  <path d="M300,290 Q315,275 322,262" stroke="#93c5fd" stroke-width="2" fill="none" opacity="0.7"/>
+  <!-- Lanterns -->
+  <rect x="130" y="256" width="8" height="20" fill="#d97706" rx="1"/>
+  <rect x="126" y="250" width="16" height="12" fill="#fbbf24" rx="2" opacity="0.9"/>
+  <line x1="134" y1="246" x2="134" y2="250" stroke="#92400e" stroke-width="1.5"/>
+  <rect x="462" y="256" width="8" height="20" fill="#d97706" rx="1"/>
+  <rect x="458" y="250" width="16" height="12" fill="#fbbf24" rx="2" opacity="0.9"/>
+  <line x1="466" y1="246" x2="466" y2="250" stroke="#92400e" stroke-width="1.5"/>
 </svg>

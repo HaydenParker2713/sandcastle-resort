@@ -1,10 +1,10 @@
 const express = require('express');
-const { pool } = require('../config/db');
-const createServices = require('../services');
+const { authService, statsService, reviewService } = require('../services');
 const { requireRole } = require('../middleware/auth');
+const { pool } = require('../config/db');
+const { logAction } = require('../utils/audit');
 
 const router = express.Router();
-const { authService, statsService, reviewService } = createServices(pool);
 
 router.get('/users', requireRole('admin'), async (req, res) => {
   try {
@@ -18,12 +18,12 @@ router.get('/users', requireRole('admin'), async (req, res) => {
 
 router.patch('/users/:id/role', requireRole('admin'), async (req, res) => {
   try {
-    const target_id = Number(req.params.id);
-    const { role_name } = req.body;
+    const target_id = parseInt(req.params.id, 10);
+    if (isNaN(target_id)) return res.status(400).json({ error: 'Invalid user ID.' });
 
+    const { role_name } = req.body;
     if (!role_name) return res.status(400).json({ error: 'role_name is required.' });
 
-    // Prevent changing any admin's role
     const users = await authService.getAllUsers();
     const target = users.find(u => u.user_id === target_id);
     if (!target) return res.status(404).json({ error: 'User not found.' });
@@ -32,6 +32,15 @@ router.patch('/users/:id/role', requireRole('admin'), async (req, res) => {
     }
 
     await authService.updateUserRole(target_id, role_name);
+    const actor = req.session.user;
+    logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+      'user.role_change', 'user', target_id,
+      {
+        target_name:  `${target.first_name} ${target.last_name}`,
+        target_email: target.email,
+        from:         target.role_name,
+        to:           role_name
+      });
     res.json({ message: `Role updated to ${role_name}.` });
   } catch (err) {
     if (err.code === 'INVALID_ROLE') return res.status(400).json({ error: err.message });
@@ -56,6 +65,21 @@ router.get('/reviews', requireRole('admin'), async (req, res) => {
     res.json(reviews);
   } catch (err) {
     res.status(500).json({ error: 'Server error fetching reviews.' });
+  }
+});
+
+router.get('/audit-log', requireRole('admin'), async (req, res) => {
+  try {
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 200));
+    const [rows] = await pool.query(
+      `SELECT log_id, actor_id, actor_name, action, target_type, target_id, detail, created_at
+       FROM audit_log ORDER BY created_at DESC LIMIT ${limit}`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Audit log error:', err);
+    if (err.code === 'ER_NO_SUCH_TABLE') return res.json([]);
+    res.status(500).json({ error: 'Server error fetching audit log.' });
   }
 });
 

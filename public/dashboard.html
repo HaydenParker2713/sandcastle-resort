@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard – Sandcastle Resort</title>
   <link rel="stylesheet" href="/styles.css" />
+  <script src="/theme-init.js"></script>
 </head>
 <body>
 
@@ -17,8 +18,11 @@
       </a>
       <div class="dash-user">
         <span id="welcomeText" class="dash-user-name">Loading...</span>
-        <img id="profileAvatar" src="/avatar.svg" alt="avatar" class="avatar" />
+        <div id="profileAvatar" class="avatar avatar-emoji" title="Change avatar in Account settings">🏄</div>
+        <button id="themeToggleBtn" class="theme-toggle" title="Toggle dark / light mode">🌙</button>
+        <a href="/activities" class="btn-secondary" style="font-size:13px;padding:7px 14px">Activities</a>
         <a id="adminLink" href="/admin" class="btn-secondary" style="display:none;font-size:13px;padding:7px 14px">Admin Panel</a>
+        <a id="staffLink" href="/staff" class="btn-secondary" style="display:none;font-size:13px;padding:7px 14px">Staff Panel</a>
         <button id="logoutBtn" class="btn-ghost" style="font-size:13px;padding:7px 14px">Logout</button>
       </div>
     </div>
@@ -236,6 +240,19 @@
     <!-- ══ Panel 5: Account ═════════════════════════════════════════════════ -->
     <div id="panel-account" class="dash-panel">
       <div class="card" style="max-width:480px;margin-bottom:18px">
+        <h2>Avatar &amp; Theme</h2>
+        <p class="muted" style="font-size:13px;margin-bottom:18px">Pick your avatar and choose your preferred color theme.</p>
+
+        <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:10px">Your Avatar</label>
+        <div id="avatarPicker" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px"></div>
+
+        <label style="font-size:13px;font-weight:600;color:var(--accent-deep);display:block;margin-bottom:10px">Theme</label>
+        <div style="display:flex;gap:10px">
+          <button id="themeLightBtn" class="theme-choice-btn">☀️ Light</button>
+          <button id="themeDarkBtn"  class="theme-choice-btn">🌙 Dark</button>
+        </div>
+      </div>
+      <div class="card" style="max-width:480px;margin-bottom:18px">
         <h2>Edit Profile</h2>
         <p class="muted" style="font-size:13px;margin-bottom:18px">Update your display name or email address.</p>
         <div id="profileMessage" class="message-box" style="display:none;margin-bottom:14px"></div>
@@ -289,24 +306,7 @@
     &copy; 2026 Sandcastle Resort &nbsp;·&nbsp; <a href="/">Back to Home</a>
   </footer>
 
+  <script src="/api.js"></script>
   <script src="/app.js"></script>
-  <script>
-    // Tab switching
-    document.querySelectorAll('.dash-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.dash-tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.dash-panel').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById(btn.dataset.panel).classList.add('active');
-      });
-    });
-    // Expose tab switcher for app.js to use
-    window.switchDashTab = (panelId) => {
-      document.querySelectorAll('.dash-tab-btn').forEach(b =>
-        b.classList.toggle('active', b.dataset.panel === panelId));
-      document.querySelectorAll('.dash-panel').forEach(p =>
-        p.classList.toggle('active', p.id === panelId));
-    };
-  </script>
 </body>
 </html>

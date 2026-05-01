@@ -1,4 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
-  <rect width="600" height="400" fill="#f97316"/>
-  <text x="50%" y="50%" fill="#fff" font-size="26" font-family="Arial" text-anchor="middle">Poolside Suite</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <linearGradient id="pool3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+    <linearGradient id="deck3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fefce8"/>
+      <stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+  </defs>
+  <!-- Sky -->
+  <rect width="600" height="195" fill="url(#sky3)"/>
+  <!-- Sun -->
+  <circle cx="520" cy="55" r="38" fill="#fef9c3" opacity="0.85"/>
+  <circle cx="520" cy="55" r="26" fill="#fef08a"/>
+  <!-- Clouds -->
+  <ellipse cx="140" cy="65" rx="75" ry="22" fill="white" opacity="0.88"/>
+  <ellipse cx="190" cy="53" rx="55" ry="20" fill="white" opacity="0.92"/>
+  <ellipse cx="90" cy="72" rx="45" ry="16" fill="white" opacity="0.8"/>
+  <ellipse cx="350" cy="48" rx="55" ry="18" fill="white" opacity="0.72"/>
+  <!-- Treeline -->
+  <ellipse cx="50" cy="198" rx="55" ry="30" fill="#15803d" opacity="0.75"/>
+  <ellipse cx="140" cy="190" rx="50" ry="36" fill="#16a34a" opacity="0.7"/>
+  <ellipse cx="490" cy="195" rx="60" ry="28" fill="#16a34a" opacity="0.7"/>
+  <ellipse cx="575" cy="188" rx="45" ry="34" fill="#14532d" opacity="0.7"/>
+  <!-- Deck surround -->
+  <rect y="192" width="600" height="208" fill="url(#deck3)"/>
+  <!-- Tile lines h -->
+  <line x1="0" y1="230" x2="600" y2="230" stroke="#e9d5a0" stroke-width="1"/>
+  <line x1="0" y1="268" x2="600" y2="268" stroke="#e9d5a0" stroke-width="1"/>
+  <line x1="0" y1="306" x2="600" y2="306" stroke="#e9d5a0" stroke-width="1"/>
+  <line x1="0" y1="344" x2="600" y2="344" stroke="#e9d5a0" stroke-width="1"/>
+  <!-- Tile lines v -->
+  <line x1="100" y1="192" x2="100" y2="400" stroke="#e9d5a0" stroke-width="1"/>
+  <line x1="200" y1="192" x2="200" y2="400" stroke="#e9d5a0" stroke-width="1"/>
+  <line x1="300" y1="192" x2="300" y2="400" stroke="#e9d5a0" stroke-width="1"/>
+  <line x1="400" y1="192" x2="400" y2="400" stroke="#e9d5a0" stroke-width="1"/>
+  <line x1="500" y1="192" x2="500" y2="400" stroke="#e9d5a0" stroke-width="1"/>
+  <!-- Pool -->
+  <rect x="75" y="200" width="450" height="172" fill="url(#pool3)" rx="10"/>
+  <!-- Pool lane dashes -->
+  <line x1="300" y1="200" x2="300" y2="372" stroke="white" stroke-width="1.5" opacity="0.3" stroke-dasharray="9,9"/>
+  <!-- Pool shimmer -->
+  <ellipse cx="185" cy="238" rx="65" ry="9" fill="white" opacity="0.16"/>
+  <ellipse cx="390" cy="315" rx="55" ry="7" fill="white" opacity="0.12"/>
+  <!-- Pool edge -->
+  <rect x="75" y="200" width="450" height="172" fill="none" stroke="#0e7490" stroke-width="3" rx="10"/>
+  <!-- Lounge chair left -->
+  <rect x="5" y="272" width="58" height="18" fill="#fbbf24" rx="4"/>
+  <rect x="5" y="259" width="22" height="15" fill="#fbbf24" rx="4"/>
+  <line x1="12" y1="290" x2="12" y2="300" stroke="#d97706" stroke-width="3"/>
+  <line x1="55" y1="290" x2="55" y2="300" stroke="#d97706" stroke-width="3"/>
+  <!-- Red umbrella left -->
+  <line x1="32" y1="222" x2="32" y2="270" stroke="#92400e" stroke-width="2.5"/>
+  <ellipse cx="32" cy="222" rx="34" ry="13" fill="#ef4444" opacity="0.9"/>
+  <path d="M-2,222 Q32,207 66,222" fill="#dc2626" opacity="0.8"/>
+  <!-- Lounge chair right -->
+  <rect x="537" y="272" width="58" height="18" fill="#fbbf24" rx="4"/>
+  <rect x="537" y="259" width="22" height="15" fill="#fbbf24" rx="4"/>
+  <line x1="544" y1="290" x2="544" y2="300" stroke="#d97706" stroke-width="3"/>
+  <line x1="587" y1="290" x2="587" y2="300" stroke="#d97706" stroke-width="3"/>
+  <!-- Blue umbrella right -->
+  <line x1="568" y1="222" x2="568" y2="270" stroke="#92400e" stroke-width="2.5"/>
+  <ellipse cx="568" cy="222" rx="34" ry="13" fill="#3b82f6" opacity="0.9"/>
+  <path d="M534,222 Q568,207 602,222" fill="#2563eb" opacity="0.8"/>
+  <!-- Potted palm left -->
+  <rect x="5" y="340" width="8" height="10" fill="#92400e" rx="1"/>
+  <ellipse cx="9" cy="338" rx="10" ry="4" fill="#b45309"/>
+  <rect x="7" y="300" width="6" height="42" fill="#78350f" rx="2"/>
+  <ellipse cx="10" cy="297" rx="18" ry="6" fill="#16a34a" transform="rotate(-6 10 297)"/>
+  <ellipse cx="-4" cy="305" rx="14" ry="5" fill="#15803d" transform="rotate(-38 -4 305)"/>
+  <ellipse cx="24" cy="305" rx="14" ry="5" fill="#15803d" transform="rotate(32 24 305)"/>
+  <!-- Potted palm right -->
+  <rect x="587" y="340" width="8" height="10" fill="#92400e" rx="1"/>
+  <ellipse cx="591" cy="338" rx="10" ry="4" fill="#b45309"/>
+  <rect x="589" y="300" width="6" height="42" fill="#78350f" rx="2"/>
+  <ellipse cx="592" cy="297" rx="18" ry="6" fill="#16a34a" transform="rotate(6 592 297)"/>
+  <ellipse cx="608" cy="305" rx="14" ry="5" fill="#15803d" transform="rotate(38 608 305)"/>
+  <ellipse cx="576" cy="305" rx="14" ry="5" fill="#15803d" transform="rotate(-32 576 305)"/>
 </svg>

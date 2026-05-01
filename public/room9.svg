@@ -1,4 +1,77 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
-  <rect width="600" height="400" fill="#34d399"/>
-  <text x="50%" y="50%" fill="#fff" font-size="22" font-family="Arial" text-anchor="middle">Small Suite w/ Balcony</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="sky9" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="40%" stop-color="#0ea5e9"/>
+      <stop offset="70%" stop-color="#fed84b" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#fef3c7"/>
+    </linearGradient>
+    <linearGradient id="garden9" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+    <linearGradient id="path9" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e7d5b3"/>
+      <stop offset="100%" stop-color="#c9a86c"/>
+    </linearGradient>
+  </defs>
+  <!-- Sky -->
+  <rect width="600" height="210" fill="url(#sky9)"/>
+  <!-- Morning sun -->
+  <circle cx="300" cy="195" r="60" fill="#fef08a" opacity="0.3"/>
+  <circle cx="300" cy="195" r="40" fill="#fed84b" opacity="0.6"/>
+  <circle cx="300" cy="195" r="24" fill="#fef9c3" opacity="0.85"/>
+  <!-- Sun rays -->
+  <line x1="300" y1="150" x2="300" y2="140" stroke="#fed84b" stroke-width="2" opacity="0.5"/>
+  <line x1="258" y1="164" x2="251" y2="156" stroke="#fed84b" stroke-width="2" opacity="0.5"/>
+  <line x1="237" y1="200" x2="226" y2="200" stroke="#fed84b" stroke-width="2" opacity="0.5"/>
+  <line x1="342" y1="164" x2="349" y2="156" stroke="#fed84b" stroke-width="2" opacity="0.5"/>
+  <line x1="363" y1="200" x2="374" y2="200" stroke="#fed84b" stroke-width="2" opacity="0.5"/>
+  <!-- Tropical garden -->
+  <rect y="207" width="600" height="193" fill="url(#garden9)"/>
+  <!-- Winding path -->
+  <path d="M250,400 Q270,370 280,340 Q295,310 290,280 Q285,255 300,230" stroke="url(#path9)" stroke-width="42" fill="none"/>
+  <!-- Path texture -->
+  <path d="M250,400 Q270,370 280,340 Q295,310 290,280 Q285,255 300,230" stroke="#c9a86c" stroke-width="2" fill="none" stroke-dasharray="12,12"/>
+  <!-- Large palm left -->
+  <rect x="30" y="118" width="14" height="96" fill="#78350f" rx="4"/>
+  <ellipse cx="37" cy="110" rx="42" ry="16" fill="#16a34a" transform="rotate(-5 37 110)"/>
+  <ellipse cx="8"  cy="124" rx="36" ry="12" fill="#15803d" transform="rotate(-40 8 124)"/>
+  <ellipse cx="68" cy="124" rx="36" ry="12" fill="#15803d" transform="rotate(36 68 124)"/>
+  <ellipse cx="15" cy="103" rx="28" ry="10" fill="#22c55e" transform="rotate(-58 15 103)"/>
+  <ellipse cx="58" cy="103" rx="28" ry="10" fill="#22c55e" transform="rotate(52 58 103)"/>
+  <!-- Large palm right -->
+  <rect x="556" y="118" width="14" height="96" fill="#78350f" rx="4"/>
+  <ellipse cx="563" cy="110" rx="42" ry="16" fill="#16a34a" transform="rotate(5 563 110)"/>
+  <ellipse cx="534" cy="124" rx="36" ry="12" fill="#15803d" transform="rotate(-36 534 124)"/>
+  <ellipse cx="592" cy="124" rx="36" ry="12" fill="#15803d" transform="rotate(40 592 124)"/>
+  <ellipse cx="542" cy="103" rx="28" ry="10" fill="#22c55e" transform="rotate(-52 542 103)"/>
+  <ellipse cx="585" cy="103" rx="28" ry="10" fill="#22c55e" transform="rotate(58 585 103)"/>
+  <!-- Hibiscus cluster left -->
+  <circle cx="85"  cy="285" r="10" fill="#f43f5e"/>
+  <circle cx="85"  cy="285" r="5"  fill="#fbbf24"/>
+  <circle cx="115" cy="302" r="9"  fill="#fb923c"/>
+  <circle cx="115" cy="302" r="4.5" fill="#fef08a"/>
+  <circle cx="60"  cy="310" r="9"  fill="#f43f5e"/>
+  <circle cx="60"  cy="310" r="4.5" fill="#fbbf24"/>
+  <circle cx="140" cy="280" r="8"  fill="#c084fc"/>
+  <circle cx="140" cy="280" r="4"  fill="#e9d5ff"/>
+  <!-- Hibiscus cluster right -->
+  <circle cx="455" cy="285" r="10" fill="#fb923c"/>
+  <circle cx="455" cy="285" r="5"  fill="#fef08a"/>
+  <circle cx="490" cy="302" r="9"  fill="#f43f5e"/>
+  <circle cx="490" cy="302" r="4.5" fill="#fbbf24"/>
+  <circle cx="520" cy="280" r="9"  fill="#c084fc"/>
+  <circle cx="520" cy="280" r="4.5" fill="#e9d5ff"/>
+  <circle cx="545" cy="298" r="8"  fill="#f43f5e"/>
+  <circle cx="545" cy="298" r="4"  fill="#fbbf24"/>
+  <!-- Ferns -->
+  <ellipse cx="200" cy="330" rx="30" ry="12" fill="#4ade80" transform="rotate(-15 200 330)" opacity="0.85"/>
+  <ellipse cx="400" cy="325" rx="30" ry="12" fill="#4ade80" transform="rotate(12 400 325)" opacity="0.85"/>
+  <ellipse cx="155" cy="358" rx="28" ry="10" fill="#22c55e" transform="rotate(-8 155 358)" opacity="0.8"/>
+  <ellipse cx="440" cy="352" rx="28" ry="10" fill="#22c55e" transform="rotate(8 440 352)" opacity="0.8"/>
+  <!-- Butterfly -->
+  <ellipse cx="300" cy="248" rx="9" ry="6" fill="#f472b6" opacity="0.9" transform="rotate(-25 300 248)"/>
+  <ellipse cx="312" cy="248" rx="9" ry="6" fill="#c084fc" opacity="0.9" transform="rotate(25 312 248)"/>
+  <line x1="306" y1="244" x2="306" y2="252" stroke="#1c0a00" stroke-width="1"/>
 </svg>
