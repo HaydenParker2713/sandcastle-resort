@@ -152,6 +152,24 @@ const unitService = {
   },
 
   // Used by admins to mark a unit as available / maintenance / inactive
+  async getUnitById(unit_id) {
+    const [rows] = await pool.execute(
+      `SELECT u.unit_id, u.unit_code, u.status, ut.type_name
+       FROM units u JOIN unit_types ut ON u.unit_type_id = ut.unit_type_id
+       WHERE u.unit_id = ?`,
+      [unit_id]
+    );
+    return rows[0] || null;
+  },
+
+  async getUnitTypeById(unit_type_id) {
+    const [rows] = await pool.execute(
+      `SELECT unit_type_id, type_name, nightly_rate FROM unit_types WHERE unit_type_id = ?`,
+      [unit_type_id]
+    );
+    return rows[0] || null;
+  },
+
   async updateUnitStatus(unit_id, status) {
     const [result] = await pool.execute(
       `UPDATE units SET status = ? WHERE unit_id = ?`,
@@ -499,6 +517,21 @@ const invoiceService = {
       [invoice_id]
     );
     return result.affectedRows > 0;
+  },
+
+  async getInvoiceById(invoice_id) {
+    const [rows] = await pool.execute(
+      `SELECT i.total_amount, u.first_name, u.last_name, u.email,
+              un.unit_code, ut.type_name, r.check_in, r.check_out
+       FROM invoices i
+       JOIN reservations r ON i.reservation_id = r.reservation_id
+       JOIN users u        ON r.user_id = u.user_id
+       JOIN units un       ON r.unit_id = un.unit_id
+       JOIN unit_types ut  ON un.unit_type_id = ut.unit_type_id
+       WHERE i.invoice_id = ?`,
+      [invoice_id]
+    );
+    return rows[0] || null;
   }
 };
 
@@ -543,6 +576,19 @@ const ticketService = {
        ORDER BY t.created_at DESC`
     );
     return rows;
+  },
+
+  async getTicketById(ticket_id) {
+    const [rows] = await pool.execute(
+      `SELECT t.ticket_id, t.title, t.ticket_type, t.status,
+              u.unit_code, usr.first_name, usr.last_name
+       FROM tickets t
+       JOIN units u   ON t.unit_id    = u.unit_id
+       JOIN users usr ON t.created_by = usr.user_id
+       WHERE t.ticket_id = ?`,
+      [ticket_id]
+    );
+    return rows[0] || null;
   },
 
   // Staff can change a ticket's status: open → in_progress → closed.

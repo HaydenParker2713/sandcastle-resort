@@ -358,7 +358,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         units.forEach(u => {
           const opt = document.createElement('option');
           opt.value = u.unit_id;
-          opt.textContent = `${u.unit_code} – ${u.type_name} ($${Number(u.nightly_rate).toFixed(0)}/night)`;
+          opt.dataset.capacity = u.capacity;
+          opt.textContent = `${u.unit_code} – ${u.type_name} · up to ${u.capacity} guests ($${Number(u.nightly_rate).toFixed(0)}/night)`;
           if (u.status !== 'available') opt.disabled = true; // grey out unavailable units
           quickSelect.appendChild(opt);
         });
@@ -966,12 +967,19 @@ document.addEventListener("DOMContentLoaded", async () => {
           msgEl.textContent = text;
         }
 
+        const selectedOpt = document.getElementById('quickUnitId').selectedOptions[0];
+        const capacity = selectedOpt ? Number(selectedOpt.dataset.capacity) : Infinity;
+
         if (!unit_id || !check_in || !check_out) {
           setFormMsg('Unit, check-in and check-out are required.', 'error');
           return;
         }
         if (new Date(check_in) >= new Date(check_out)) {
           setFormMsg('Check-out must be after check-in.', 'error');
+          return;
+        }
+        if (adults > capacity) {
+          setFormMsg(`This unit holds up to ${capacity} guest${capacity !== 1 ? 's' : ''}. Please reduce the number of adults.`, 'error');
           return;
         }
 

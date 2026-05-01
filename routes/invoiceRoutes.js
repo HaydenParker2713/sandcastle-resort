@@ -30,11 +30,20 @@ router.post('/:id/pay', requireRole('admin'), async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid invoice ID.' });
 
-    const ok = await invoiceService.markInvoicePaid(id);
+    const inv  = await invoiceService.getInvoiceById(id);
+    const ok   = await invoiceService.markInvoicePaid(id);
     if (!ok) return res.status(404).json({ error: 'Invoice not found.' });
     const actor = req.session.user;
     logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
-      'invoice.paid', 'invoice', id);
+      'invoice.paid', 'invoice', id, {
+        guest_name:  inv ? `${inv.first_name} ${inv.last_name}` : null,
+        guest_email: inv?.email,
+        unit_code:   inv?.unit_code,
+        type_name:   inv?.type_name,
+        check_in:    inv?.check_in,
+        check_out:   inv?.check_out,
+        amount:      inv?.total_amount
+      });
     res.json({ message: 'Invoice marked as paid.' });
   } catch (err) {
     console.error('Mark invoice paid error:', err);

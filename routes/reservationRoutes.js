@@ -116,12 +116,21 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
     if (isNaN(reservation_id)) return res.status(400).json({ error: 'Invalid reservation ID.' });
 
     try {
+      const resInfo = await reservationService.getReservationById(reservation_id);
       const ok = await reservationService.cancelReservation(reservation_id, user_id, isAdmin);
       if (!ok) return res.status(404).json({ error: 'Reservation not found.' });
       const actor = req.session.user;
       logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
-        'reservation.cancel', 'reservation', reservation_id,
-        { cancelled_by_role: actor.role_name });
+        'reservation.cancel', 'reservation', reservation_id, {
+          guest_name:          resInfo ? `${resInfo.first_name} ${resInfo.last_name}` : null,
+          guest_email:         resInfo?.email,
+          unit_code:           resInfo?.unit_code,
+          type_name:           resInfo?.type_name,
+          check_in:            resInfo?.check_in,
+          check_out:           resInfo?.check_out,
+          amount:              resInfo?.total_amount,
+          cancelled_by_role:   actor.role_name
+        });
       res.json({ message: 'Reservation cancelled.' });
     } catch (err) {
       if (err && err.code === 'NOT_ALLOWED') return res.status(403).json({ error: 'Not allowed.' });

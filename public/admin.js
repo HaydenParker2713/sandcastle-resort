@@ -86,6 +86,67 @@ document.getElementById('guestViewBtn').addEventListener('click', () => {
   window.location.href = '/dashboard';
 });
 
+// ── Static modal buttons ──────────────────────────────────────────────────────
+document.getElementById('auditLogRefreshBtn')?.addEventListener('click', () => loadAuditLog(true));
+document.getElementById('unitModalCloseBtn')?.addEventListener('click', () => closeUnitModal());
+document.getElementById('unitModalCancelBtn')?.addEventListener('click', () => closeUnitModal());
+document.getElementById('unitTypeModalCloseBtn')?.addEventListener('click', () => closeUnitTypeModal());
+document.getElementById('unitTypeModalCancelBtn')?.addEventListener('click', () => closeUnitTypeModal());
+
+// ── Event delegation for dynamically rendered tables ──────────────────────────
+// Fallback image handler (error events don't bubble, so use capture)
+document.addEventListener('error', (e) => {
+  if (e.target.tagName === 'IMG' && e.target.dataset.fallback) {
+    e.target.src = e.target.dataset.fallback;
+    delete e.target.dataset.fallback;
+  }
+}, true);
+
+document.getElementById('reservationsTable')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const id = Number(btn.dataset.id);
+  if (btn.dataset.action === 'mark-paid')          markPaid(id, btn);
+  if (btn.dataset.action === 'cancel-reservation') cancelReservation(id, btn);
+});
+
+document.getElementById('unitsTable')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  if (btn.dataset.action === 'open-unit')   openUnitModal(Number(btn.dataset.id));
+  if (btn.dataset.action === 'delete-unit') deleteUnit(Number(btn.dataset.id), btn.dataset.code);
+});
+
+document.getElementById('unitTypesContainer')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  if (btn.dataset.action === 'open-unit-type') openUnitTypeModal(Number(btn.dataset.id));
+});
+
+document.getElementById('ticketsTableActive')?.addEventListener('change', (e) => {
+  const sel = e.target.closest('select[data-action]');
+  if (!sel) return;
+  if (sel.dataset.action === 'update-ticket-status') updateTicketStatus(Number(sel.dataset.id), sel.value, sel);
+});
+
+document.getElementById('usersTable')?.addEventListener('change', (e) => {
+  const sel = e.target.closest('select[data-action]');
+  if (!sel) return;
+  if (sel.dataset.action === 'update-user-role') updateUserRole(Number(sel.dataset.id), sel.value, sel);
+});
+
+document.getElementById('barList')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  if (btn.dataset.action === 'delete-bar-item') deleteBarItem(Number(btn.dataset.id));
+});
+
+document.getElementById('actList')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  if (btn.dataset.action === 'delete-activity-item') deleteActivityItem(Number(btn.dataset.id));
+});
+
 // ── Profile ───────────────────────────────────────────────────────────────────
 async function loadProfile() {
   try {
@@ -114,11 +175,11 @@ function reservationTable(rows) {
   rows.forEach(r => {
     const payBtn = r.invoice_id && r.invoice_status === 'unpaid' && r.status === 'confirmed'
       ? `<button class="btn-primary" style="font-size:12px;padding:4px 10px;margin-bottom:4px"
-           onclick="markPaid(${r.invoice_id},this)">Mark Paid</button>`
+           data-action="mark-paid" data-id="${r.invoice_id}">Mark Paid</button>`
       : '';
     const cancelBtn = r.status === 'confirmed'
       ? `<button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5"
-           onclick="cancelReservation(${r.reservation_id},this)">Cancel</button>`
+           data-action="cancel-reservation" data-id="${r.reservation_id}">Cancel</button>`
       : '';
     const actions = payBtn || cancelBtn
       ? `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">${payBtn}${cancelBtn}</div>`
@@ -254,7 +315,7 @@ async function loadUnits() {
       const photoSrc = u.unit_photo_url || u.type_photo_url || unitImage(u.type_name);
       const thumb = `<img src="${escapeHTML(photoSrc)}" alt="${escapeHTML(u.type_name)}"
           style="width:56px;height:40px;object-fit:cover;border-radius:5px;display:block"
-          onerror="this.src='${unitImage(u.type_name)}'">`;
+          data-fallback="${unitImage(u.type_name)}">`;
       const rateLabel = u.unit_nightly_rate
         ? `$${Number(u.unit_nightly_rate).toFixed(2)} <span style="font-size:11px;color:var(--muted)">(custom)</span>`
         : `$${Number(u.nightly_rate).toFixed(2)}`;
@@ -267,9 +328,9 @@ async function loadUnits() {
         <td>${rateLabel}</td>
         <td>${badge(u.status, u.status)}</td>
         <td><button class="btn-secondary" style="font-size:12px;padding:5px 12px;white-space:nowrap"
-              onclick="openUnitModal(${u.unit_id})">Edit</button></td>
+              data-action="open-unit" data-id="${u.unit_id}">Edit</button></td>
         <td><button class="btn-ghost" style="font-size:12px;padding:5px 10px;color:#dc2626;border-color:#fca5a5;white-space:nowrap"
-              onclick="deleteUnit(${u.unit_id},'${escapeHTML(u.unit_code)}')">Delete</button></td>
+              data-action="delete-unit" data-id="${u.unit_id}" data-code="${escapeHTML(u.unit_code)}">Delete</button></td>
       </tr>`;
     });
 
@@ -464,7 +525,7 @@ function renderUnitTypesTable(types, container) {
     const typeSrc = t.photo_url || unitImage(t.type_name);
     const thumb = `<img src="${escapeHTML(typeSrc)}" alt="${escapeHTML(t.type_name)}"
         style="width:64px;height:46px;object-fit:cover;border-radius:6px;display:block"
-        onerror="this.src='${unitImage(t.type_name)}'">`;
+        data-fallback="${unitImage(t.type_name)}">`;
     const desc = t.description
       ? `<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:200px">${escapeHTML(t.description)}</span>`
       : '<span class="sub-muted">–</span>';
@@ -479,7 +540,7 @@ function renderUnitTypesTable(types, container) {
       <td>${desc}</td>
       <td>${amen}</td>
       <td><button class="btn-secondary" style="font-size:12px;padding:5px 12px;white-space:nowrap"
-            onclick="openUnitTypeModal(${t.unit_type_id})">Edit</button></td>
+            data-action="open-unit-type" data-id="${t.unit_type_id}">Edit</button></td>
     </tr>`;
   });
   container.innerHTML = html + '</tbody></table>';
@@ -633,7 +694,7 @@ async function loadTickets() {
           <td>${escapeHTML(t.first_name)} ${escapeHTML(t.last_name)}</td>
           <td>${badge(t.status, t.status)}</td>
           <td>
-            <select class="inline" onchange="updateTicketStatus(${t.ticket_id},this.value,this)">
+            <select class="inline" data-action="update-ticket-status" data-id="${t.ticket_id}">
               <option value="open"        ${t.status === 'open'        ? 'selected' : ''}>Open</option>
               <option value="in_progress" ${t.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
               <option value="closed"                                                     >Close</option>
@@ -731,7 +792,7 @@ async function loadUsers() {
       const isAdmin = u.role_name === 'admin';
       const roleSelect = isAdmin
         ? `<span class="sub-muted" style="font-size:12px">Protected</span>`
-        : `<select class="inline" onchange="updateUserRole(${u.user_id},this.value,this)">
+        : `<select class="inline" data-action="update-user-role" data-id="${u.user_id}">
              <option value="guest"  ${u.role_name === 'guest'  ? 'selected' : ''}>Guest</option>
              <option value="staff"  ${u.role_name === 'staff'  ? 'selected' : ''}>Staff</option>
            </select>`;
@@ -789,16 +850,13 @@ let revenueChartInstance = null;
 
 async function loadRevenue() {
   try {
-    const { revenue, monthly, avgRating, avgPerGuest } = await apiFetch('/api/admin/stats');
+    const { revenue, monthly, avgPerGuest } = await apiFetch('/api/admin/stats');
     document.getElementById('statTotalRevenue').textContent =
       '$' + Number(revenue.total_revenue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     document.getElementById('statAvgRevenuePerGuest').textContent =
       avgPerGuest?.avg_revenue_per_guest
         ? '$' + Number(avgPerGuest.avg_revenue_per_guest).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
         : '–';
-    document.getElementById('statAvgRating').textContent =
-      avgRating.avg_rating ? `${avgRating.avg_rating} ★ (${avgRating.total_reviews})` : '–';
-
     const labels  = monthly.map(m => m.month);
     const data    = monthly.map(m => Number(m.revenue));
 
@@ -903,7 +961,7 @@ async function loadBarItems() {
               ${item.description ? `<span class="list-item-desc">${escapeHTML(item.description)}</span>` : ''}
             </div>
             <span class="list-item-price">${item.price != null ? '$' + Number(item.price).toFixed(2) : '—'}</span>
-            <button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5;flex-shrink:0" onclick="deleteBarItem(${item.item_id})">Delete</button>
+            <button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5;flex-shrink:0" data-action="delete-bar-item" data-id="${item.item_id}">Delete</button>
           </div>`).join('')}
       </div>`).join('');
   } catch { el.innerHTML = '<p class="muted">Could not load menu.</p>'; }
@@ -961,7 +1019,7 @@ async function loadActivityItems() {
             ${item.description ? `<span class="list-item-desc">${escapeHTML(item.description)}</span>` : ''}
             ${tagHtml ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${tagHtml}</div>` : ''}
           </div>
-          <button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5;flex-shrink:0" onclick="deleteActivityItem(${item.activity_id})">Delete</button>
+          <button class="btn-ghost" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5;flex-shrink:0" data-action="delete-activity-item" data-id="${item.activity_id}">Delete</button>
         </div>`;
     }).join('');
   } catch { el.innerHTML = '<p class="muted">Could not load activities.</p>'; }
@@ -1020,6 +1078,101 @@ const ACTION_LABELS = {
   'room_type.edit':      'Edited Room Type',
 };
 
+function pill(text, cls = 'gray') {
+  return `<span class="audit-pill audit-pill-${cls}">${escapeHTML(String(text))}</span>`;
+}
+
+function fmtDate(v) {
+  if (!v) return '';
+  const s = typeof v === 'string' ? v.slice(0, 10) : new Date(v).toISOString().slice(0, 10);
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatAuditDetail(action, d, targetId) {
+  const parts = [];
+  const lbl = (text) => `<span class="audit-lbl">${escapeHTML(text)}</span>`;
+  const add = (label, value, cls) => {
+    if (value == null || value === '' || value === 'null') return;
+    parts.push(`${lbl(label)} ${cls ? pill(value, cls) : `<strong>${escapeHTML(String(value))}</strong>`}`);
+  };
+
+  switch (action) {
+    case 'reservation.cancel':
+      add('Guest',     d.guest_name);
+      add('Email',     d.guest_email);
+      add('Unit',      d.unit_code,  'teal');
+      add('Type',      d.type_name);
+      if (d.check_in)  parts.push(`${lbl('Dates')} <strong>${escapeHTML(fmtDate(d.check_in))} – ${escapeHTML(fmtDate(d.check_out))}</strong>`);
+      if (d.amount)    parts.push(`${lbl('Invoice')} <strong>$${escapeHTML(Number(d.amount).toFixed(2))}</strong>`);
+      if (d.cancelled_by_role === 'admin') parts.push(pill('Admin override', 'red'));
+      break;
+
+    case 'invoice.paid':
+      add('Guest',     d.guest_name);
+      add('Email',     d.guest_email);
+      add('Unit',      d.unit_code,  'teal');
+      add('Type',      d.type_name);
+      if (d.check_in)  parts.push(`${lbl('Dates')} <strong>${escapeHTML(fmtDate(d.check_in))} – ${escapeHTML(fmtDate(d.check_out))}</strong>`);
+      if (d.amount)    parts.push(`${lbl('Amount')} <span class="audit-val-green">$${escapeHTML(Number(d.amount).toFixed(2))}</span>`);
+      break;
+
+    case 'user.role_change':
+      add('User',  d.target_name);
+      add('Email', d.target_email);
+      if (d.from && d.to) parts.push(`${pill(d.from, 'gray')} → ${pill(d.to, 'teal')}`);
+      break;
+
+    case 'unit.create':
+      add('Code', d.unit_code, 'teal');
+      add('Type', d.type_name);
+      add('Status', d.status);
+      break;
+
+    case 'unit.edit':
+      add('Unit', d.unit_code, 'teal');
+      if (d.status)           add('Status', d.status);
+      if (d.nightly_rate != null) parts.push(`${lbl('Rate')} <strong>$${escapeHTML(Number(d.nightly_rate).toFixed(2))}/night</strong>`);
+      if (d.description  != null) parts.push(lbl('Notes updated'));
+      if (d.unit_type_id)     add('New type ID', d.unit_type_id);
+      break;
+
+    case 'unit.status_change':
+      add('Unit', d.unit_code, 'teal');
+      add('Type', d.type_name);
+      if (d.from && d.to) parts.push(`${pill(d.from, 'gray')} → ${pill(d.to, d.to === 'available' ? 'green' : 'amber')}`);
+      break;
+
+    case 'unit.delete':
+      add('Code', d.unit_code, 'red');
+      add('Type', d.type_name);
+      break;
+
+    case 'ticket.status_change':
+      if (d.title)        parts.push(`${lbl('Ticket')} <strong>"${escapeHTML(d.title)}"</strong>`);
+      add('Type',     d.ticket_type);
+      add('Unit',     d.unit_code, 'teal');
+      add('Reporter', d.reporter);
+      if (d.from && d.to) parts.push(`${pill(d.from, 'gray')} → ${pill(d.to, d.to === 'closed' ? 'green' : 'teal')}`);
+      break;
+
+    case 'room_type.edit':
+      add('Type', d.type_name, 'teal');
+      if (d.nightly_rate != null) parts.push(`${lbl('Rate')} <strong>$${escapeHTML(Number(d.nightly_rate).toFixed(2))}/night</strong>`);
+      if (d.description  != null) parts.push(lbl('Description updated'));
+      if (d.amenities    != null) parts.push(lbl('Amenities updated'));
+      if (d.photo_updated)        parts.push(lbl('Photo updated'));
+      break;
+
+    default:
+      return Object.entries(d).map(([k, v]) =>
+        `${lbl(k + ':')} <strong>${escapeHTML(String(v))}</strong>`
+      ).join(' &nbsp;·&nbsp; ') || `#${targetId}`;
+  }
+
+  return parts.join(' &nbsp;&nbsp; ') || '—';
+}
+
 async function loadAuditLog(force = false) {
   const el = document.getElementById('auditLogTable');
   if (!el) return;
@@ -1041,29 +1194,28 @@ async function loadAuditLog(force = false) {
       return;
     }
     const html = `
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <table class="audit-table">
         <thead>
-          <tr style="text-align:left;border-bottom:2px solid #e5e7eb">
-            <th style="padding:8px 10px;white-space:nowrap">Time</th>
-            <th style="padding:8px 10px">Actor</th>
-            <th style="padding:8px 10px">Action</th>
-            <th style="padding:8px 10px">Target</th>
-            <th style="padding:8px 10px">Details</th>
+          <tr>
+            <th>Time</th>
+            <th>Admin / Staff</th>
+            <th>Action</th>
+            <th>Details</th>
           </tr>
         </thead>
         <tbody>
           ${rows.map(r => {
-            const ts = new Date(r.created_at).toLocaleString();
+            const ts    = new Date(r.created_at).toLocaleString();
             const label = ACTION_LABELS[r.action] || r.action;
-            const detail = r.detail ? Object.entries(typeof r.detail === 'string' ? JSON.parse(r.detail) : r.detail)
-              .map(([k, v]) => `<span style="color:#6b7280">${escapeHTML(k)}:</span> ${escapeHTML(String(v))}`)
-              .join(' &nbsp;·&nbsp; ') : '—';
-            return `<tr style="border-bottom:1px solid #f1f5f9">
-              <td style="padding:7px 10px;white-space:nowrap;color:#6b7280">${escapeHTML(ts)}</td>
-              <td style="padding:7px 10px;font-weight:500">${escapeHTML(r.actor_name || 'System')}</td>
-              <td style="padding:7px 10px">${escapeHTML(label)}</td>
-              <td style="padding:7px 10px;color:#6b7280">${escapeHTML(r.target_type)} #${escapeHTML(String(r.target_id))}</td>
-              <td style="padding:7px 10px;font-size:12px">${detail}</td>
+            const d     = r.detail
+              ? (typeof r.detail === 'string' ? JSON.parse(r.detail) : r.detail)
+              : {};
+            const detail = formatAuditDetail(r.action, d, r.target_id);
+            return `<tr class="audit-row">
+              <td class="audit-ts">${escapeHTML(ts)}</td>
+              <td class="audit-actor">${escapeHTML(r.actor_name || 'System')}</td>
+              <td class="audit-action">${escapeHTML(label)}</td>
+              <td class="audit-detail">${detail}</td>
             </tr>`;
           }).join('')}
         </tbody>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard - Sandcastle Resort</title>
   <link rel="stylesheet" href="/styles.css" />
-  <script>if(localStorage.getItem('sc_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+  <script src="/darktheme.js"></script>
   <style>
     .tab-nav { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
     .tab-btn { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; background: #eef6f6; color: #0ea5a4; font-weight: 600; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
@@ -111,6 +111,38 @@
     [data-theme="dark"] #newUnitCode,
     [data-theme="dark"] #newUnitType,
     [data-theme="dark"] #newUnitStatus { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+
+    /* ── Audit log table ──────────────────────────────────────────────────── */
+    .audit-table { width:100%;border-collapse:collapse;font-size:13px; }
+    .audit-table thead tr { text-align:left;border-bottom:2px solid #e5e7eb; }
+    .audit-table th { padding:8px 10px;white-space:nowrap;font-weight:600;color:#374151; }
+    .audit-row { border-bottom:1px solid #f1f5f9; }
+    .audit-ts { padding:7px 10px;white-space:nowrap;color:#6b7280; }
+    .audit-actor { padding:7px 10px;font-weight:500;color:#111827; }
+    .audit-action { padding:7px 10px;white-space:nowrap;color:#111827; }
+    .audit-detail { padding:7px 10px;font-size:12px;color:#374151;line-height:1.6; }
+    .audit-lbl { color:#9ca3af;font-size:11px; }
+    .audit-val-green { font-weight:700;color:#065f46; }
+    .audit-pill { display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap; }
+    .audit-pill-teal  { background:#e0f7f7;color:#0e7490; }
+    .audit-pill-gray  { background:#f3f4f6;color:#4b5563; }
+    .audit-pill-red   { background:#fee2e2;color:#dc2626; }
+    .audit-pill-green { background:#d1fae5;color:#065f46; }
+    .audit-pill-amber { background:#fef3c7;color:#b45309; }
+    [data-theme="dark"] .audit-table thead tr { border-bottom-color:#334155; }
+    [data-theme="dark"] .audit-table th { color:#5eead4; }
+    [data-theme="dark"] .audit-row { border-bottom-color:#334155; }
+    [data-theme="dark"] .audit-ts  { color:#94a3b8; }
+    [data-theme="dark"] .audit-actor { color:#e2e8f0; }
+    [data-theme="dark"] .audit-action { color:#e2e8f0; }
+    [data-theme="dark"] .audit-detail { color:#cbd5e1; }
+    [data-theme="dark"] .audit-lbl { color:#64748b; }
+    [data-theme="dark"] .audit-val-green { color:#6ee7b7; }
+    [data-theme="dark"] .audit-pill-teal  { background:#134e4a;color:#5eead4; }
+    [data-theme="dark"] .audit-pill-gray  { background:#1e293b;color:#94a3b8; }
+    [data-theme="dark"] .audit-pill-red   { background:#450a0a;color:#fca5a5; }
+    [data-theme="dark"] .audit-pill-green { background:#064e3b;color:#6ee7b7; }
+    [data-theme="dark"] .audit-pill-amber { background:#451a03;color:#fcd34d; }
   </style>
 </head>
 <body>
@@ -231,10 +263,6 @@
           <div class="num" id="statAvgRevenuePerGuest">–</div>
           <div class="lbl">Avg Revenue per Guest</div>
         </div>
-        <div class="stat-card">
-          <div class="num" id="statAvgRating">–</div>
-          <div class="lbl">Avg Guest Rating</div>
-        </div>
       </div>
       <div style="max-width:700px">
         <canvas id="revenueChart" height="120"></canvas>
@@ -334,7 +362,7 @@
     <div id="tab-auditlog" class="tab-panel card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <h2 style="margin:0">Audit Log</h2>
-        <button onclick="loadAuditLog(true)" class="btn-secondary" style="padding:7px 16px;font-size:13px">Refresh</button>
+        <button id="auditLogRefreshBtn" class="btn-secondary" style="padding:7px 16px;font-size:13px">Refresh</button>
       </div>
       <div class="table-wrap" id="auditLogTable"><p class="muted" style="font-size:14px">Loading…</p></div>
     </div>
@@ -344,7 +372,7 @@
   <!-- ── Individual Unit edit modal ───────────────────────────────────────── -->
   <div id="unitModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:14px;padding:28px;max-width:540px;width:90%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25)">
-      <button onclick="closeUnitModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;line-height:1">&times;</button>
+      <button id="unitModalCloseBtn" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;line-height:1">&times;</button>
       <h2 id="unitModalTitle" style="margin:0 0 20px;font-size:1.15rem;color:#0c4a4a">Edit Unit</h2>
       <div id="unitModalMsg" class="admin-message" style="margin-bottom:12px"></div>
 
@@ -399,7 +427,7 @@
         <div style="display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:6px">
           <button id="unitModalDeleteBtn" class="btn-ghost" style="color:#dc2626;border-color:#fca5a5;font-size:13px">Delete Unit</button>
           <div style="display:flex;gap:10px">
-            <button onclick="closeUnitModal()" class="btn-secondary">Cancel</button>
+            <button id="unitModalCancelBtn" class="btn-secondary">Cancel</button>
             <button id="unitModalSaveBtn" class="btn-primary" style="padding:10px 24px">Save Changes</button>
           </div>
         </div>
@@ -410,7 +438,7 @@
   <!-- ── Room Type edit modal ──────────────────────────────────────────────── -->
   <div id="unitTypeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:14px;padding:28px;max-width:520px;width:90%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25)">
-      <button onclick="closeUnitTypeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;line-height:1">&times;</button>
+      <button id="unitTypeModalCloseBtn" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;line-height:1">&times;</button>
       <h2 id="unitTypeModalTitle" style="margin:0 0 18px;font-size:1.15rem;color:#0c4a4a">Edit Room Type</h2>
       <div id="unitTypeModalMsg" class="admin-message" style="margin-bottom:12px"></div>
 
@@ -444,7 +472,7 @@
         </div>
 
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">
-          <button onclick="closeUnitTypeModal()" class="btn-secondary">Cancel</button>
+          <button id="unitTypeModalCancelBtn" class="btn-secondary">Cancel</button>
           <button id="unitTypeModalSaveBtn" class="btn-primary" style="padding:10px 24px">Save Changes</button>
         </div>
       </div>

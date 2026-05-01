@@ -77,9 +77,10 @@ router.patch('/:id', ...requireRole('admin'), async (req, res) => {
     const ok = await unitService.updateUnitTypeDetails(id, updates);
     if (!ok) return res.status(404).json({ error: 'Unit type not found.' });
 
-    const actor = req.session.user;
-    const logDetail = { ...updates };
-    delete logDetail.photo_url; // don't store file paths in audit log
+    const actor      = req.session.user;
+    const typeInfo   = await unitService.getUnitTypeById(id);
+    const logDetail  = { type_name: typeInfo?.type_name, ...updates };
+    delete logDetail.photo_url;
     if (req.file) logDetail.photo_updated = true;
     logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
       'room_type.edit', 'room_type', id, logDetail);

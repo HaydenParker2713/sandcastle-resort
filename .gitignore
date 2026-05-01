@@ -8,3 +8,4 @@ coverage/
 dist/
 public/uploads/events/*
 !public/uploads/events/.gitkeep
+.idea/

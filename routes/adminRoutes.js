@@ -35,7 +35,12 @@ router.patch('/users/:id/role', requireRole('admin'), async (req, res) => {
     const actor = req.session.user;
     logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
       'user.role_change', 'user', target_id,
-      { from: target.role_name, to: role_name, target_email: target.email });
+      {
+        target_name:  `${target.first_name} ${target.last_name}`,
+        target_email: target.email,
+        from:         target.role_name,
+        to:           role_name
+      });
     res.json({ message: `Role updated to ${role_name}.` });
   } catch (err) {
     if (err.code === 'INVALID_ROLE') return res.status(400).json({ error: err.message });

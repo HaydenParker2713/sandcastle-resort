@@ -50,7 +50,7 @@ app.use(helmet({
       scriptSrc:  ["'self'", "https://cdn.jsdelivr.net"], // allow Chart.js CDN
       styleSrc:   ["'self'", "'unsafe-inline'"],        // inline styles needed for dynamic theming
       imgSrc:     ["'self'", "data:", "blob:"],         // allow uploaded image previews
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
       fontSrc:    ["'self'"],
       objectSrc:  ["'none'"],                           // block Flash and other plugins
       upgradeInsecureRequests: []
