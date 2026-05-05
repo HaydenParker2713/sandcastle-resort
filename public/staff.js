@@ -1,22 +1,6 @@
 // ── staff.js — Staff panel logic (staff.html) ─────────────────────────────────
 // Staff can: view all reservations, update ticket statuses, post/delete events.
 
-// ── Shared helpers ────────────────────────────────────────────────────────────
-function formatDate(val) {
-  if (!val) return '';
-  // ISO date strings like "2026-06-15" are parsed without timezone conversion
-  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-    const [y, m, d] = val.split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString();
-  }
-  return new Date(val).toLocaleDateString();
-}
-
-// Wraps a string in a coloured badge <span> — CSS handles the colours
-function badge(text, cls) {
-  return `<span class="badge badge-${escapeHTML(cls)}">${escapeHTML(text)}</span>`;
-}
-
 // Shows a temporary notification bar at the top of the page
 function notify(text, type = 'success') {
   const el = document.getElementById('staffNotify');

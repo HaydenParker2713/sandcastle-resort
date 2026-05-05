@@ -32,7 +32,7 @@ const activityListRoutes    = require("./routes/activityListRoutes");
 const unitTypeRoutes        = require("./routes/unitTypeRoutes");
 
 // Services that need to create their DB tables on first run
-const { eventService, barService, activityListService, unitService } = require("./services");
+const { eventService, barService, activityListService, unitService } = require("./services/index");
 const { ensureAuditTable } = require("./utils/audit");
 
 const app  = express();

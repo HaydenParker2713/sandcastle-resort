@@ -107,18 +107,6 @@ function setMessage(message, type = "info") {
   box.textContent = message;
 }
 
-// Converts ISO date strings and Date objects to a localised readable date.
-// Handles plain "YYYY-MM-DD" without converting to UTC (avoids off-by-one day).
-function formatDate(val) {
-  if (!val) return '';
-  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-    const [y, m, d] = val.split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString();
-  }
-  const d = new Date(val);
-  return isNaN(d.getTime()) ? val : d.toLocaleDateString();
-}
-
 // ── Main DOMContentLoaded ─────────────────────────────────────────────────────
 // Everything below is dashboard-specific and runs only after the DOM is ready.
 document.addEventListener("DOMContentLoaded", async () => {
@@ -289,47 +277,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       loadCalendar(calendarSelection.unit_id);
     });
-  }
-
-  // ── Unit card visual helpers ───────────────────────────────────────────────
-  // Match gradient colours and emoji to room type for a visual gallery
-  function unitGradient(typeName) {
-    const t = typeName.toLowerCase();
-    if (t.includes('oceanfront'))  return 'linear-gradient(135deg,#0c4a6e,#0ea5e9)';
-    if (t.includes('poolside'))    return 'linear-gradient(135deg,#065f46,#10b981)';
-    if (t.includes('queen'))       return 'linear-gradient(135deg,#4c1d95,#8b5cf6)';
-    if (t.includes('two bedroom')) return 'linear-gradient(135deg,#7c2d12,#f97316)';
-    if (t.includes('one bedroom')) return 'linear-gradient(135deg,#1e3a5f,#3b82f6)';
-    if (t.includes('studio'))      return 'linear-gradient(135deg,#713f12,#eab308)';
-    return                                'linear-gradient(135deg,#374151,#6b7280)';
-  }
-
-  function unitEmoji(typeName) {
-    const t = typeName.toLowerCase();
-    if (t.includes('oceanfront')) return '🌊';
-    if (t.includes('poolside'))   return '🏊';
-    if (t.includes('two bedroom'))return '🏠';
-    if (t.includes('queen'))      return '👑';
-    if (t.includes('studio'))     return '🏖️';
-    return '🛏️';
-  }
-
-  function unitImage(typeName) {
-    const t = typeName.toLowerCase();
-    if (t.includes('oceanfront') && !t.includes('studio')) return '/room1.svg';
-    if (t.includes('oceanfront'))                           return '/room2.svg';
-    if (t.includes('poolside') && !t.includes('studio'))   return '/room3.svg';
-    if (t.includes('poolside'))                             return '/room4.svg';
-    if (t.includes('standard suite') && t.includes('main'))return '/room5.svg';
-    if (t.includes('standard studio') && !t.includes('balcony') && t.includes('main')) return '/room6.svg';
-    if (t.includes('queen'))                                return '/room7.svg';
-    if (t.includes('standard studio') && t.includes('balcony') && t.includes('main'))  return '/room8.svg';
-    if (t.includes('small suite'))                          return '/room9.svg';
-    if (t.includes('pool building'))                        return '/room10.svg';
-    if (t === 'studio')                                     return '/room11.svg';
-    if (t.includes('one bedroom'))                          return '/room12.svg';
-    if (t.includes('two bedroom'))                          return '/room13.svg';
-    return '/room5.svg';
   }
 
   // ── Load and render units ──────────────────────────────────────────────────

@@ -2,38 +2,6 @@
 // Handles: room card gallery, login/register modal, "Book Now" flow,
 // and auto-redirecting already-logged-in users to their correct dashboard.
 
-// ── Room card helpers ──────────────────────────────────────────────────────────
-// Fallback gradient used while the SVG loads or if it fails
-function roomGradient(typeName) {
-  const t = typeName.toLowerCase();
-  if (t.includes('oceanfront'))  return 'linear-gradient(135deg,#0c4a6e,#0ea5e9)';
-  if (t.includes('poolside'))    return 'linear-gradient(135deg,#065f46,#10b981)';
-  if (t.includes('queen'))       return 'linear-gradient(135deg,#4c1d95,#8b5cf6)';
-  if (t.includes('two bedroom')) return 'linear-gradient(135deg,#7c2d12,#f97316)';
-  if (t.includes('one bedroom')) return 'linear-gradient(135deg,#1e3a5f,#3b82f6)';
-  if (t.includes('studio'))      return 'linear-gradient(135deg,#713f12,#eab308)';
-  return                                'linear-gradient(135deg,#374151,#6b7280)';
-}
-
-// Map room type name to an illustrated SVG scene
-function unitImage(typeName) {
-  const t = typeName.toLowerCase();
-  if (t.includes('oceanfront') && !t.includes('studio')) return '/room1.svg';
-  if (t.includes('oceanfront'))                           return '/room2.svg';
-  if (t.includes('poolside') && !t.includes('studio'))   return '/room3.svg';
-  if (t.includes('poolside'))                             return '/room4.svg';
-  if (t.includes('standard suite') && t.includes('main'))return '/room5.svg';
-  if (t.includes('standard studio') && !t.includes('balcony') && t.includes('main')) return '/room6.svg';
-  if (t.includes('queen'))                                return '/room7.svg';
-  if (t.includes('standard studio') && t.includes('balcony') && t.includes('main'))  return '/room8.svg';
-  if (t.includes('small suite'))                          return '/room9.svg';
-  if (t.includes('pool building'))                        return '/room10.svg';
-  if (t === 'studio')                                     return '/room11.svg';
-  if (t.includes('one bedroom'))                          return '/room12.svg';
-  if (t.includes('two bedroom'))                          return '/room13.svg';
-  return '/room5.svg';
-}
-
 // ── Render rooms grid ──────────────────────────────────────────────────────────
 // Groups individual units by type so we show one card per type with an availability count.
 // Clicking "Book Now" either sends the user to their dashboard or opens the login modal.
@@ -62,7 +30,7 @@ function renderRooms(units) {
     const card = document.createElement('div');
     card.className = 'room-card';
     card.innerHTML = `
-      <div class="room-img" style="position:relative;overflow:hidden;background:${roomGradient(t.type_name)}">
+      <div class="room-img" style="position:relative;overflow:hidden;background:${unitGradient(t.type_name)}">
         <img src="${t.type_photo_url || unitImage(t.type_name)}" alt="${t.type_name}"
              style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"
              onerror="this.remove()">

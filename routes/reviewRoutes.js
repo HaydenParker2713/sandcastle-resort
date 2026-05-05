@@ -1,25 +1,19 @@
-// ── Review routes  /api/reviews ───────────────────────────────────────────────
-// Guests can leave one review per completed stay.
-// The public can read reviews by unit; the dashboard shows which stays are reviewed.
-
 const express    = require('express');
 const rateLimit  = require('express-rate-limit');
-const { reviewService, reservationService } = require('../services');
+const { reviewService, reservationService } = require('../services/index');
 const { requireAuth } = require('../middleware/auth');
+const { RES_STATUS } = require('../constants');
 
-// Limit to 10 reviews per hour per IP — generous but blocks bots
 const createLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many review submissions. Please try again later.' }
+  message: { error: 'Too many review submissions. Please try again later.' },
 });
 
 const router = express.Router();
 
-// POST /api/reviews — submit a review for a past stay
-// Enforces: must own the reservation, rating 1–5, one review per reservation.
 router.post('/', requireAuth, createLimiter, async (req, res) => {
   try {
     const user_id = req.session.user.user_id;
@@ -36,12 +30,10 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Comment must be 1000 characters or fewer.' });
     }
 
-    // Verify the reservation belongs to this user (prevents reviewing other guests' stays)
     const reservation = await reservationService.getReservationOwner(reservation_id, user_id);
     if (!reservation) return res.status(404).json({ error: 'Reservation not found.' });
 
-    // Only allow reviews on confirmed stays that have already checked out
-    if (reservation.status !== 'confirmed') {
+    if (reservation.status !== RES_STATUS.CONFIRMED) {
       return res.status(400).json({ error: 'Can only review a confirmed stay.' });
     }
     const checkOutDate = new Date(reservation.check_out);
@@ -50,7 +42,6 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Reviews can only be submitted after checkout.' });
     }
 
-    // Prevent duplicate reviews on the same stay
     const existing = await reviewService.getReviewByReservation(reservation_id);
     if (existing) return res.status(409).json({ error: 'You already reviewed this stay.' });
 
@@ -59,9 +50,8 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
       user_id,
       unit_id: reservation.unit_id,
       rating:  ratingNum,
-      comment
+      comment,
     });
-
     res.status(201).json({ message: 'Review submitted.', review_id });
   } catch (err) {
     console.error('Create review error:', err);
@@ -69,26 +59,20 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
   }
 });
 
-// GET /api/reviews/mine — returns reservation_ids that the current user has reviewed
-// The dashboard uses this to toggle the "Leave Review" / "Reviewed" state on each booking card.
 router.get('/mine', requireAuth, async (req, res) => {
   try {
-    const ids = await reviewService.getReviewedReservationIds(req.session.user.user_id);
-    res.json(ids);
+    res.json(await reviewService.getReviewedReservationIds(req.session.user.user_id));
   } catch (err) {
     console.error('Get reviewed reservations error:', err);
     res.status(500).json({ error: 'Server error.' });
   }
 });
 
-// GET /api/reviews/unit/:unit_id — public endpoint, returns all reviews for one unit
-// Used on unit detail pages to show guest ratings.
 router.get('/unit/:unit_id', async (req, res) => {
   try {
     const unit_id = parseInt(req.params.unit_id, 10);
     if (isNaN(unit_id)) return res.status(400).json({ error: 'Invalid unit ID.' });
-    const reviews = await reviewService.getReviewsByUnit(unit_id);
-    res.json(reviews);
+    res.json(await reviewService.getReviewsByUnit(unit_id));
   } catch (err) {
     console.error('Get reviews error:', err);
     res.status(500).json({ error: 'Server error fetching reviews.' });

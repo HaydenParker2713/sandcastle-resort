@@ -7,25 +7,6 @@ let _closedTicketsVisible = false;
 let _unitTypes = [];
 let _units     = [];
 
-// Maps room type name → illustrated SVG (matches guest-facing home.js / app.js)
-function unitImage(typeName) {
-  const t = (typeName || '').toLowerCase();
-  if (t.includes('oceanfront') && !t.includes('studio')) return '/room1.svg';
-  if (t.includes('oceanfront'))                           return '/room2.svg';
-  if (t.includes('poolside') && !t.includes('studio'))   return '/room3.svg';
-  if (t.includes('poolside'))                             return '/room4.svg';
-  if (t.includes('standard suite') && t.includes('main'))return '/room5.svg';
-  if (t.includes('standard studio') && !t.includes('balcony') && t.includes('main')) return '/room6.svg';
-  if (t.includes('queen'))                                return '/room7.svg';
-  if (t.includes('standard studio') && t.includes('balcony') && t.includes('main'))  return '/room8.svg';
-  if (t.includes('small suite'))                          return '/room9.svg';
-  if (t.includes('pool building'))                        return '/room10.svg';
-  if (t === 'studio')                                     return '/room11.svg';
-  if (t.includes('one bedroom'))                          return '/room12.svg';
-  if (t.includes('two bedroom'))                          return '/room13.svg';
-  return '/room5.svg';
-}
-
 // ── Theme init ────────────────────────────────────────────────────────────────
 // Applied immediately (IIFE) to prevent a flash of the wrong colour scheme
 (function initAdminTheme() {
@@ -49,21 +30,6 @@ function showMessage(text, type = 'success') {
   el.textContent = text;
   el.className = `admin-message ${type}`;
   setTimeout(() => { el.className = 'admin-message'; }, 4000);
-}
-
-function formatDate(val) {
-  if (!val) return '';
-  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-    const [y, m, d] = val.split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString();
-  }
-  const d = new Date(val);
-  return isNaN(d.getTime()) ? val : d.toLocaleDateString();
-}
-
-// Renders a coloured pill badge — colour is controlled by CSS .badge-{cls} rules
-function badge(text, cls) {
-  return `<span class="badge badge-${escapeHTML(cls)}">${escapeHTML(text)}</span>`;
 }
 
 // ── Tab navigation ────────────────────────────────────────────────────────────

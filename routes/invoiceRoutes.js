@@ -1,38 +1,40 @@
 const express = require('express');
-const { invoiceService } = require('../services');
+const { invoiceService } = require('../services/index');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
+const { ROLES } = require('../constants');
 
 const router = express.Router();
 
 router.get('/mine', requireAuth, async (req, res) => {
   try {
-    const rows = await invoiceService.getInvoicesByUser(req.session.user.user_id);
-    res.json(rows);
+    res.json(await invoiceService.getInvoicesByUser(req.session.user.user_id));
   } catch (err) {
     console.error('Get invoices error:', err);
     res.status(500).json({ error: 'Server error fetching invoices.' });
   }
 });
 
-router.get('/', requireRole('admin'), async (req, res) => {
+router.get('/', requireRole(ROLES.ADMIN), async (req, res) => {
   try {
-    const rows = await invoiceService.getAllInvoices();
-    res.json(rows);
+    res.json(await invoiceService.getAllInvoices());
   } catch (err) {
     console.error('Get all invoices error:', err);
     res.status(500).json({ error: 'Server error fetching invoices.' });
   }
 });
 
-router.post('/:id/pay', requireRole('admin'), async (req, res) => {
+router.post('/:id/pay', requireRole(ROLES.ADMIN), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid invoice ID.' });
 
-    const inv  = await invoiceService.getInvoiceById(id);
-    const ok   = await invoiceService.markInvoicePaid(id);
-    if (!ok) return res.status(404).json({ error: 'Invoice not found.' });
+    const inv = await invoiceService.getInvoiceById(id);
+    const ok  = await invoiceService.markInvoicePaid(id);
+    // markInvoicePaid only updates rows with status='unpaid', so ok=false means
+    // either the invoice doesn't exist or it's already paid/voided.
+    if (!ok) return res.status(404).json({ error: 'Invoice not found or not payable.' });
+
     const actor = req.session.user;
     logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
       'invoice.paid', 'invoice', id, {
@@ -42,7 +44,7 @@ router.post('/:id/pay', requireRole('admin'), async (req, res) => {
         type_name:   inv?.type_name,
         check_in:    inv?.check_in,
         check_out:   inv?.check_out,
-        amount:      inv?.total_amount
+        amount:      inv?.total_amount,
       });
     res.json({ message: 'Invoice marked as paid.' });
   } catch (err) {

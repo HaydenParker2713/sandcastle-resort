@@ -1,5 +1,8 @@
 const nodemailer = require('nodemailer');
 
+// Minimal HTML escape for user-supplied strings inserted into email templates.
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 let transporter = null;
 
 async function getTransporter() {
@@ -9,21 +12,21 @@ async function getTransporter() {
 
   if (smtpReady) {
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: false,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      host:   process.env.SMTP_HOST,
+      port:   Number(process.env.SMTP_PORT) || 587,
+      secure: Number(process.env.SMTP_PORT) === 465,
+      auth:   { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     });
     console.log(`📧 Email: using SMTP (${process.env.SMTP_HOST})`);
   } else {
     const test = await nodemailer.createTestAccount();
     transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
+      host:   'smtp.ethereal.email',
+      port:   587,
       secure: false,
-      auth: { user: test.user, pass: test.pass }
+      auth:   { user: test.user, pass: test.pass },
     });
-    console.log('📧 Email: SMTP not fully configured — using Ethereal preview (check console for links)');
+    console.log('📧 Email: SMTP not configured — using Ethereal preview (check console for links)');
   }
 
   return transporter;
@@ -35,7 +38,9 @@ async function sendBookingConfirmation({ to, firstName, unitCode, typeName, chec
 
     const fmtDate = (val) => {
       const [y, m, d] = String(val).split('T')[0].split('-').map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      });
     };
 
     const html = `<!DOCTYPE html>
@@ -48,11 +53,9 @@ async function sendBookingConfirmation({ to, firstName, unitCode, typeName, chec
       <h1 style="color:#fff;margin:0;font-size:1.5rem;font-weight:800;letter-spacing:-0.5px">Sandcastle Resort</h1>
       <p style="color:rgba(255,255,255,.85);margin:6px 0 0;font-size:14px">Booking Confirmed</p>
     </div>
-
     <div style="padding:32px">
-      <p style="font-size:16px;color:#111;margin:0 0 8px;font-weight:700">Hi ${firstName}! Your stay is confirmed 🎉</p>
+      <p style="font-size:16px;color:#111;margin:0 0 8px;font-weight:700">Hi ${esc(firstName)}! Your stay is confirmed 🎉</p>
       <p style="font-size:14px;color:#6b7280;margin:0 0 24px">Here's a summary of your reservation. We look forward to seeing you!</p>
-
       <div style="background:#f0f9f9;border-radius:12px;padding:20px 24px;margin-bottom:24px">
         <table style="width:100%;border-collapse:collapse;font-size:14px">
           <tr>
@@ -61,7 +64,7 @@ async function sendBookingConfirmation({ to, firstName, unitCode, typeName, chec
           </tr>
           <tr style="border-top:1px solid #e5f0f0">
             <td style="padding:9px 0;color:#6b7280;font-weight:600">Unit</td>
-            <td style="padding:9px 0;color:#111">${unitCode} – ${typeName}</td>
+            <td style="padding:9px 0;color:#111">${esc(unitCode)} – ${esc(typeName)}</td>
           </tr>
           <tr style="border-top:1px solid #e5f0f0">
             <td style="padding:9px 0;color:#6b7280;font-weight:600">Check-in</td>
@@ -81,10 +84,8 @@ async function sendBookingConfirmation({ to, firstName, unitCode, typeName, chec
           </tr>
         </table>
       </div>
-
-      <p style="font-size:13px;color:#6b7280;margin:0 0 4px">Payment is due at check-in. You can view and manage your booking in your dashboard.</p>
+      <p style="font-size:13px;color:#6b7280;margin:0">Payment is due at check-in. You can view and manage your booking in your dashboard.</p>
     </div>
-
     <div style="background:#f0f9f9;padding:18px 32px;text-align:center;border-top:1px solid #e5f0f0">
       <p style="font-size:12px;color:#9ca3af;margin:0">© 2026 Sandcastle Resort · Demo Application</p>
     </div>
@@ -93,16 +94,16 @@ async function sendBookingConfirmation({ to, firstName, unitCode, typeName, chec
 </html>`;
 
     const info = await transport.sendMail({
-      from: process.env.SMTP_FROM || '"Sandcastle Resort" <noreply@sandcastle.com>',
+      from:    process.env.SMTP_FROM || '"Sandcastle Resort" <noreply@sandcastle.com>',
       to,
       subject: `Booking Confirmed – ${unitCode} · ${String(checkIn).split('T')[0]}`,
-      html
+      html,
     });
-
     const previewUrl = nodemailer.getTestMessageUrl(info);
     if (previewUrl) console.log(`📧 Email preview: ${previewUrl}`);
   } catch (err) {
     console.error('Email error (booking still confirmed):', err.message);
+    // Do not re-throw — a failed confirmation email must not fail the booking.
   }
 }
 
@@ -118,7 +119,7 @@ async function sendPasswordChangedNotice({ to, firstName }) {
       <h1 style="color:#fff;margin:0;font-size:1.3rem;font-weight:800">Sandcastle Resort</h1>
     </div>
     <div style="padding:32px">
-      <p style="font-size:15px;color:#111;margin:0 0 12px">Hi ${firstName},</p>
+      <p style="font-size:15px;color:#111;margin:0 0 12px">Hi ${esc(firstName)},</p>
       <p style="font-size:14px;color:#374151;margin:0 0 20px">Your account password was just changed. If you did not make this change, please contact us immediately.</p>
       <p style="font-size:13px;color:#6b7280;margin:0">This is an automated security notice.</p>
     </div>
@@ -127,24 +128,25 @@ async function sendPasswordChangedNotice({ to, firstName }) {
 </html>`;
 
     const info = await transport.sendMail({
-      from: process.env.SMTP_FROM || '"Sandcastle Resort" <noreply@sandcastle.com>',
+      from:    process.env.SMTP_FROM || '"Sandcastle Resort" <noreply@sandcastle.com>',
       to,
       subject: 'Your Sandcastle Resort password was changed',
-      html
+      html,
     });
-
     const previewUrl = nodemailer.getTestMessageUrl(info);
     if (previewUrl) console.log(`📧 Email preview: ${previewUrl}`);
   } catch (err) {
-    console.error('Email error:', err.message);
+    console.error('Password-changed email error:', err.message);
+    // Do not re-throw — security notice failure should not surface as a 500.
   }
 }
 
+// sendPasswordReset throws on failure so the route can invalidate the DB token
+// and return a meaningful error rather than silently leaving an unused token.
 async function sendPasswordReset({ to, firstName, resetLink }) {
-  try {
-    const transport = await getTransporter();
+  const transport = await getTransporter();
 
-    const html = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html>
 <body style="font-family:Inter,Arial,sans-serif;margin:0;padding:0;background:#f0f7f7">
   <div style="max-width:480px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(12,74,74,.12)">
@@ -154,7 +156,7 @@ async function sendPasswordReset({ to, firstName, resetLink }) {
       <p style="color:rgba(255,255,255,.85);margin:6px 0 0;font-size:13px">Password Reset Request</p>
     </div>
     <div style="padding:32px">
-      <p style="font-size:15px;color:#111;margin:0 0 12px">Hi ${firstName},</p>
+      <p style="font-size:15px;color:#111;margin:0 0 12px">Hi ${esc(firstName)},</p>
       <p style="font-size:14px;color:#374151;margin:0 0 24px">
         We received a request to reset your password. Click the button below to choose a new one.
         This link expires in <strong>1 hour</strong>.
@@ -180,19 +182,14 @@ async function sendPasswordReset({ to, firstName, resetLink }) {
 </body>
 </html>`;
 
-    const info = await transport.sendMail({
-      from: process.env.SMTP_FROM || '"Sandcastle Resort" <noreply@sandcastle.com>',
-      to,
-      subject: 'Reset your Sandcastle Resort password',
-      html
-    });
-
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) console.log(`📧 Password reset email preview: ${previewUrl}`);
-  } catch (err) {
-    console.error('Password reset email error:', err.message);
-    throw err;
-  }
+  const info = await transport.sendMail({
+    from:    process.env.SMTP_FROM || '"Sandcastle Resort" <noreply@sandcastle.com>',
+    to,
+    subject: 'Reset your Sandcastle Resort password',
+    html,
+  });
+  const previewUrl = nodemailer.getTestMessageUrl(info);
+  if (previewUrl) console.log(`📧 Password reset email preview: ${previewUrl}`);
 }
 
 module.exports = { sendBookingConfirmation, sendPasswordChangedNotice, sendPasswordReset };
