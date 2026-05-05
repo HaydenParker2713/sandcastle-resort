@@ -462,4 +462,116 @@ Replacing the default MemoryStore with Redis via `connect-redis` would allow the
 
 ---
 
+## 6. Future Deployment Plan
+
+The application is architecturally ready for public hosting. The following steps describe what would be required to make Sandcastle Resort accessible to anyone on the internet.
+
+### 6.1 Choosing a Hosting Platform
+
+The Node.js server needs to run on a machine that is always on and reachable from the internet. Several cloud platforms can host it with minimal configuration:
+
+| Platform | Notes |
+|----------|-------|
+| **Railway** | Recommended starting point. Deploys directly from a GitHub repository, provisions a MySQL database in the same project, and sets environment variables through a dashboard. Free tier available. |
+| **Render** | Similar to Railway. Supports Node.js web services and managed PostgreSQL/MySQL. Auto-deploys on every push to `main`. |
+| **DigitalOcean App Platform** | More control than Railway/Render. Can connect to a managed MySQL database (DigitalOcean Managed Databases). Predictable pricing. |
+| **AWS / Azure / GCP** | Full control but significantly more configuration. Suitable if the project grows and requires scaling, custom networking, or compliance requirements. |
+
+For an initial public deployment, **Railway** or **Render** are the fastest paths from code to a live URL.
+
+### 6.2 Managed Database
+
+The local MySQL instance cannot be reached from a cloud server. A hosted database is required:
+
+- **Railway MySQL** — provisioned automatically alongside the app in the same Railway project. The `DATABASE_URL` is injected as an environment variable.
+- **PlanetScale** — serverless MySQL with a generous free tier and branching for schema changes.
+- **DigitalOcean Managed MySQL** — dedicated MySQL 8 instance with daily backups.
+
+After creating the hosted database, run the schema and seed files once to initialise it:
+
+```bash
+mysql -h <host> -u <user> -p <dbname> < schema.sql
+mysql -h <host> -u <user> -p <dbname> < seed.sql
+```
+
+### 6.3 Environment Variables
+
+The following environment variables must be set on the hosting platform (never committed to the repository):
+
+| Variable | Value |
+|----------|-------|
+| `NODE_ENV` | `production` |
+| `PORT` | Set automatically by most platforms; leave unset to use the platform default |
+| `SESSION_SECRET` | A long random string — generate with `openssl rand -hex 64` |
+| `DB_HOST` | Hostname of the managed MySQL instance |
+| `DB_USER` | Database username |
+| `DB_PASSWORD` | Database password |
+| `DB_NAME` | Database name |
+| `ALLOWED_ORIGIN` | The public URL of the app (e.g. `https://sandcastle-resort.up.railway.app`) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | SMTP credentials for sending real password-reset emails |
+
+### 6.4 Custom Domain
+
+Most platforms provide a generated subdomain (e.g. `sandcastle-resort.up.railway.app`) immediately on deploy. To use a custom domain such as `sandcastleresort.com`:
+
+1. Purchase the domain from a registrar (Namecheap, Cloudflare Registrar, Google Domains).
+2. In the hosting platform dashboard, add the custom domain to the project.
+3. Create the DNS records the platform specifies (typically a `CNAME` or `A` record) in the registrar's DNS settings.
+4. The platform provisions a TLS certificate via Let's Encrypt automatically — HTTPS will be active within minutes.
+
+Because the session cookie already has `secure: true` when `NODE_ENV=production`, the app will work correctly over HTTPS without any code changes.
+
+### 6.5 Persistent Session Store
+
+Before going live, the default in-memory session store must be replaced with Redis so that sessions survive server restarts. Install the required packages:
+
+```bash
+npm install connect-redis redis
+```
+
+Then update the session configuration in `server.js`:
+
+```js
+const { createClient } = require('redis');
+const RedisStore = require('connect-redis').default;
+
+const redisClient = createClient({ url: process.env.REDIS_URL });
+redisClient.connect();
+
+app.use(session({
+  store: new RedisStore({ client: redisClient }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 1000 * 60 * 60 * 2 }
+}));
+```
+
+Railway and Render both offer a one-click Redis instance that injects a `REDIS_URL` environment variable automatically.
+
+### 6.6 File Upload Storage
+
+Uploaded images (unit photos, event images) are currently stored on the local filesystem under `public/uploads/`. On a cloud server these files are lost on every redeploy. For persistent uploads, replace the multer disk storage with cloud object storage:
+
+- **Cloudflare R2** — S3-compatible, no egress fees, generous free tier. Use the `@aws-sdk/client-s3` package with the R2 endpoint.
+- **AWS S3** — industry standard, integrates with CloudFront CDN for fast global delivery.
+
+The only code change required is swapping `multer.diskStorage` for `multer-s3` (or an equivalent) so that files are written directly to the bucket instead of the local disk.
+
+### 6.7 Deployment Checklist
+
+Before making the application publicly accessible, confirm each of the following:
+
+- [ ] `NODE_ENV=production` is set on the hosting platform
+- [ ] `SESSION_SECRET` is a long random value, not the placeholder from `.env.example`
+- [ ] The hosted database has been initialised with `schema.sql` and `seed.sql`
+- [ ] The default admin password has been changed after first login
+- [ ] `ALLOWED_ORIGIN` is set to the public URL (no trailing slash)
+- [ ] A Redis instance is connected and the session store is updated in `server.js`
+- [ ] SMTP credentials are configured so password-reset emails send successfully
+- [ ] A custom domain and TLS certificate are in place
+- [ ] Uploaded files are configured to write to cloud object storage, not the local disk
+
+---
+
 *End of Documentation*
