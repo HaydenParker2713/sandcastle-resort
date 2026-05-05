@@ -8,7 +8,7 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME     || "sandcastle_resort",
   waitForConnections: true,
   connectionLimit: Number(process.env.DB_POOL_SIZE) || 10,
-  queueLimit: 0,
+  queueLimit: 100,
 });
 
 async function testConnection() {

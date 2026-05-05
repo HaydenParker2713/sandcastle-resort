@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const { ticketService } = require('../services/index');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
+const { pool } = require('../config/db');
 const { ROLES, TICKET_STATUS, TICKET_TYPES } = require('../constants');
 
 const createLimiter = rateLimit({
@@ -28,6 +29,21 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
     }
     if (title.length > 150) {
       return res.status(400).json({ error: 'Title must be 150 characters or fewer.' });
+    }
+
+    // Staff and admin can file tickets for any unit.
+    // Guests must have had at least one confirmed reservation for the unit.
+    const isStaffOrAdmin = [ROLES.ADMIN, ROLES.STAFF].includes(req.session.user.role_name);
+    if (!isStaffOrAdmin) {
+      const [owned] = await pool.execute(
+        `SELECT reservation_id FROM reservations
+         WHERE user_id = ? AND unit_id = ? AND status = 'confirmed'
+         LIMIT 1`,
+        [req.session.user.user_id, Number(unit_id)]
+      );
+      if (!owned.length) {
+        return res.status(403).json({ error: 'You can only submit tickets for units you have reserved.' });
+      }
     }
 
     const ticket_id = await ticketService.createTicket({
@@ -69,17 +85,18 @@ router.patch('/:id', requireRole(ROLES.ADMIN, ROLES.STAFF), async (req, res) => 
     }
 
     const ticket = await ticketService.getTicketById(id);
-    const ok     = await ticketService.updateTicketStatus(id, status, req.session.user.user_id);
-    if (!ok) return res.status(404).json({ error: 'Ticket not found.' });
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
+
+    await ticketService.updateTicketStatus(id, status, req.session.user.user_id);
 
     const actor = req.session.user;
     logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
       'ticket.status_change', 'ticket', id, {
-        title:       ticket?.title,
-        ticket_type: ticket?.ticket_type,
-        unit_code:   ticket?.unit_code,
-        reporter:    ticket ? `${ticket.first_name} ${ticket.last_name}` : null,
-        from:        ticket?.status,
+        title:       ticket.title,
+        ticket_type: ticket.ticket_type,
+        unit_code:   ticket.unit_code,
+        reporter:    `${ticket.first_name} ${ticket.last_name}`,
+        from:        ticket.status,
         to:          status,
       });
     res.json({ message: 'Ticket updated.' });

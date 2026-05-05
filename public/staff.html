@@ -43,6 +43,8 @@
     [data-theme="dark"] .emoji-opt { background:#1e293b; }
     [data-theme="dark"] .event-list-item { border-bottom-color:#334155; }
     [data-theme="dark"] .event-list-emoji { background:#1e3a3a; }
+    .closed-tickets-section h3 { color:#0c4a4a; }
+    [data-theme="dark"] .closed-tickets-section h3 { color:#5eead4; }
   </style>
 </head>
 <body>
@@ -83,10 +85,20 @@
       <div style="overflow-x:auto" id="staffReservations">Loading...</div>
     </div>
 
-    <div id="tab-tickets" class="dash-panel card">
-      <h2>Maintenance &amp; Housekeeping Tickets</h2>
-      <div style="overflow-x:auto" id="staffTickets">Loading...</div>
-    </div>
+     <div id="tab-tickets" class="dash-panel card">
+       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+         <h2 style="margin:0">Maintenance &amp; Housekeeping Tickets</h2>
+         <input type="search" id="searchTickets" placeholder="Search unit, title…" style="padding:8px 12px;border:1.5px solid #d1e8e8;border-radius:8px;font-size:13px;width:220px" />
+       </div>
+       <div style="overflow-x:auto" id="staffTickets">Loading...</div>
+       <div id="closedTicketsToggleWrap" style="margin-top:20px;display:none">
+         <button id="closedTicketsToggleBtn" class="btn-secondary" style="font-size:13px;padding:7px 16px">Show Closed Tickets ▼</button>
+       </div>
+       <div class="closed-tickets-section" id="closedTicketsSection" style="margin-top:16px;display:none">
+         <h3 style="margin:0 0 12px;font-size:1rem;color:#0c4a4a">Closed Tickets</h3>
+         <div style="overflow-x:auto" id="staffTicketsClosed"></div>
+       </div>
+     </div>
 
     <!-- ── Events tab ──────────────────────────────────────────────────────── -->
     <div id="tab-events" class="dash-panel">

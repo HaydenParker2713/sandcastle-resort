@@ -30,10 +30,10 @@ router.post('/:id/pay', requireRole(ROLES.ADMIN), async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid invoice ID.' });
 
     const inv = await invoiceService.getInvoiceById(id);
-    const ok  = await invoiceService.markInvoicePaid(id);
-    // markInvoicePaid only updates rows with status='unpaid', so ok=false means
-    // either the invoice doesn't exist or it's already paid/voided.
-    if (!ok) return res.status(404).json({ error: 'Invoice not found or not payable.' });
+    if (!inv) return res.status(404).json({ error: 'Invoice not found.' });
+
+    const ok = await invoiceService.markInvoicePaid(id);
+    if (!ok) return res.status(409).json({ error: 'Invoice has already been paid or voided.' });
 
     const actor = req.session.user;
     logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,

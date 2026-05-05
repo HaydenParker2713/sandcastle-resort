@@ -54,8 +54,16 @@ router.post('/', requireRole(ROLES.STAFF, ROLES.ADMIN), createLimiter, upload.si
     const { title, description, event_date, event_time, location, ticket_info, banner_emoji } = req.body;
 
     if (!title) return res.status(400).json({ error: 'Title is required.' });
-    if (title.length > 255)                        return res.status(400).json({ error: 'Title must be 255 characters or fewer.' });
-    if (description && description.length > 2000)  return res.status(400).json({ error: 'Description must be 2000 characters or fewer.' });
+    if (title.length > 255) return res.status(400).json({ error: 'Title must be 255 characters or fewer.' });
+
+    if (event_date !== undefined && event_date !== '' && event_date !== null) {
+      const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRe.test(event_date) || isNaN(Date.parse(event_date))) {
+        return res.status(400).json({ error: 'event_date must be a valid date in YYYY-MM-DD format.' });
+      }
+    }
+
+    if (description && description.length > 2000) return res.status(400).json({ error: 'Description must be 2000 characters or fewer.' });
     if (location && location.length > 255)          return res.status(400).json({ error: 'Location must be 255 characters or fewer.' });
     if (ticket_info && ticket_info.length > 255)   return res.status(400).json({ error: 'Ticket info must be 255 characters or fewer.' });
 

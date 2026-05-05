@@ -103,10 +103,20 @@ async function loadReservations() {
   }
 }
 
-// ── Tickets tab ───────────────────────────────────────────────────────────────
-// Staff see all tickets and can change status via an inline dropdown.
-// The dropdown's onchange calls updateTicket() which is exposed on window so
-// it can be called from the inline HTML attribute.
+// ── Tickets tab ───────────────────────────────────────────────────────────
+// Staff see all tickets and can change status via event delegation.
+// Closed and active tickets are rendered in separate tables.
+let _staffClosedTicketsVisible = false;
+
+function formatDateTime(val) {
+  if (!val) return '–';
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? String(val) : d.toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+}
+
 async function loadTickets() {
   try {
     const tickets = await apiFetch('/api/tickets');
@@ -114,40 +124,115 @@ async function loadTickets() {
       document.getElementById('staffTickets').innerHTML = '<div class="empty-state"><div class="empty-icon">🎫</div><p>No tickets yet.</p></div>';
       return;
     }
-    let html = `<table>
-      <thead><tr><th>#</th><th>Unit</th><th>Type</th><th>Title</th><th>Reporter</th><th>Status</th><th>Update</th><th>Date</th></tr></thead>
-      <tbody>`;
-    tickets.forEach(t => {
-      html += `<tr>
-        <td>#${t.ticket_id}</td>
-        <td>${escapeHTML(t.unit_code)}</td>
-        <td>${escapeHTML(t.ticket_type)}</td>
-        <td>${escapeHTML(t.title)}${t.description ? `<br><span class="sub-muted">${escapeHTML(t.description)}</span>` : ''}</td>
-        <td>${escapeHTML(t.first_name)} ${escapeHTML(t.last_name)}</td>
-        <td>${badge(t.status, t.status)}</td>
-        <td>
-          <select class="inline" onchange="updateTicket(${t.ticket_id}, this.value, this)">
-            <option value="open"        ${t.status === 'open'        ? 'selected' : ''}>Open</option>
-            <option value="in_progress" ${t.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
-            <option value="closed"      ${t.status === 'closed'      ? 'selected' : ''}>Closed</option>
-          </select>
-        </td>
-        <td>${formatDate(t.created_at)}</td>
-      </tr>`;
-    });
-    html += '</tbody></table>';
-    document.getElementById('staffTickets').innerHTML = html;
+
+    const active = tickets.filter(t => t.status !== 'closed');
+    const closed = tickets.filter(t => t.status === 'closed');
+
+    // ── Active tickets table ──────────────────────────────────────────────
+    if (!active.length) {
+      document.getElementById('staffTickets').innerHTML =
+        '<p style="color:var(--muted);padding:12px 0">No open tickets.</p>';
+    } else {
+      let html = `<table>
+        <thead><tr>
+          <th>#</th><th>Unit</th><th>Type</th><th>Title</th>
+          <th>Reporter</th><th>Status</th><th>Update</th><th>Submitted</th>
+        </tr></thead><tbody>`;
+
+      active.forEach(t => {
+        html += `<tr>
+          <td>#${t.ticket_id}</td>
+          <td>${escapeHTML(t.unit_code)}</td>
+          <td>${escapeHTML(t.ticket_type)}</td>
+          <td>${escapeHTML(t.title)}${t.description
+            ? `<br><span class="sub-muted">${escapeHTML(t.description)}</span>` : ''}</td>
+          <td>${escapeHTML(t.first_name)} ${escapeHTML(t.last_name)}</td>
+          <td>${badge(t.status, t.status)}</td>
+          <td>
+            <select class="inline" data-action="update-ticket-status" data-id="${t.ticket_id}">
+              <option value="open"        ${t.status === 'open'        ? 'selected' : ''}>Open</option>
+              <option value="in_progress" ${t.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+              <option value="closed"                                                     >Close</option>
+            </select>
+          </td>
+          <td>${formatDate(t.created_at)}</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('staffTickets').innerHTML = html;
+    }
+
+    // ── Closed tickets table ──────────────────────────────────────────────
+    const closedSection  = document.getElementById('closedTicketsSection');
+    const toggleWrap     = document.getElementById('closedTicketsToggleWrap');
+    const toggleBtn      = document.getElementById('closedTicketsToggleBtn');
+
+    if (!closed.length) {
+      if (toggleWrap) toggleWrap.style.display = 'none';
+      closedSection.style.display = 'none';
+    } else {
+      if (toggleWrap) toggleWrap.style.display = '';
+      closedSection.style.display = _staffClosedTicketsVisible ? 'block' : 'none';
+
+      if (toggleBtn && !toggleBtn._wired) {
+        toggleBtn._wired = true;
+        toggleBtn.addEventListener('click', () => {
+          _staffClosedTicketsVisible = !_staffClosedTicketsVisible;
+          closedSection.style.display = _staffClosedTicketsVisible ? 'block' : 'none';
+          toggleBtn.textContent = _staffClosedTicketsVisible ? 'Hide Closed Tickets ▲' : 'Show Closed Tickets ▼';
+        });
+      }
+      if (toggleBtn) {
+        toggleBtn.textContent = _staffClosedTicketsVisible ? 'Hide Closed Tickets ▲' : 'Show Closed Tickets ▼';
+      }
+
+      let html = `<table>
+        <thead><tr>
+          <th>#</th><th>Unit</th><th>Type</th><th>Title</th>
+          <th>Reporter</th><th>Closed By</th><th>Closed At</th>
+        </tr></thead><tbody>`;
+
+      closed.forEach(t => {
+        const closerName = t.closed_by_first
+          ? `${escapeHTML(t.closed_by_first)} ${escapeHTML(t.closed_by_last)}`
+          : '<span class="sub-muted">–</span>';
+        html += `<tr>
+          <td>#${t.ticket_id}</td>
+          <td>${escapeHTML(t.unit_code)}</td>
+          <td>${escapeHTML(t.ticket_type)}</td>
+          <td>${escapeHTML(t.title)}${t.description
+            ? `<br><span class="sub-muted">${escapeHTML(t.description)}</span>` : ''}</td>
+          <td>${escapeHTML(t.first_name)} ${escapeHTML(t.last_name)}</td>
+          <td>${closerName}</td>
+          <td style="white-space:nowrap">${formatDateTime(t.closed_at)}</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('staffTicketsClosed').innerHTML = html;
+    }
   } catch (err) {
     document.getElementById('staffTickets').textContent = 'Failed to load tickets.';
   }
 }
 
-// Called by inline onchange — updates ticket status via PATCH then reloads the list
-window.updateTicket = async (ticket_id, status, select) => {
-  select.disabled = true; // prevent double-submit
+// Event delegation handler for ticket status updates
+document.getElementById('staffTickets')?.addEventListener('change', (e) => {
+  const sel = e.target.closest('select[data-action]');
+  if (!sel) return;
+  if (sel.dataset.action === 'update-ticket-status') updateTicketStatus(Number(sel.dataset.id), sel.value, sel);
+});
+
+// Updates ticket status via PATCH then reloads the list
+window.updateTicketStatus = async (ticket_id, status, select) => {
+  select.disabled = true;
   try {
-    await apiFetch(`/api/tickets/${ticket_id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
-    notify(`Ticket #${ticket_id} updated to ${status}.`);
+    await apiFetch(`/api/tickets/${ticket_id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+    notify(`Ticket updated to ${status}.`);
     await loadTickets();
   } catch (err) {
     notify(err.message, 'error');

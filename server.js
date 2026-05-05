@@ -38,6 +38,16 @@ const { ensureAuditTable } = require("./utils/audit");
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ── Proxy trust ───────────────────────────────────────────────────────────────
+// Tell Express to trust one hop of X-Forwarded-For headers so req.ip reflects
+// the real client IP rather than the load balancer's address. This is required
+// for rate limiters to key on individual clients instead of sharing one bucket
+// for all users. Only set this when there is exactly one trusted proxy in front
+// of the app (e.g. nginx, AWS ALB, Heroku router). If running with no proxy
+// (direct local dev), this setting is harmless. If there are multiple proxy hops,
+// increase the number to match, or set to a specific trusted IP/CIDR instead.
+app.set('trust proxy', 1);
+
 // ── Security headers ──────────────────────────────────────────────────────────
 // helmet() sets many protective HTTP headers automatically.
 // The Content Security Policy (CSP) tells browsers which sources of scripts,

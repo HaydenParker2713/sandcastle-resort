@@ -6,9 +6,15 @@ const reservationService = {
     try {
       await conn.beginTransaction();
 
-      // Verify the unit exists and is available for booking before checking dates.
+      // Lock the unit row for the duration of this transaction. FOR UPDATE prevents
+      // a concurrent booking from reading status = 'available' on the same row
+      // between our check and our INSERT. Also fetches the rate here so we don't
+      // need a second round-trip to units after the INSERT.
       const [unitRows] = await conn.execute(
-        `SELECT status FROM units WHERE unit_id = ?`, [unit_id]
+        `SELECT u.status, COALESCE(u.nightly_rate, ut.nightly_rate) AS nightly_rate
+         FROM units u JOIN unit_types ut ON u.unit_type_id = ut.unit_type_id
+         WHERE u.unit_id = ? FOR UPDATE`,
+        [unit_id]
       );
       if (!unitRows.length) {
         const err = new Error('Unit not found.');
@@ -42,13 +48,7 @@ const reservationService = {
       );
       const reservation_id = resResult.insertId;
 
-      const [rateRows] = await conn.execute(
-        `SELECT COALESCE(u.nightly_rate, ut.nightly_rate) AS nightly_rate
-         FROM units u JOIN unit_types ut ON u.unit_type_id = ut.unit_type_id
-         WHERE u.unit_id = ?`,
-        [unit_id]
-      );
-      const nightly_rate = Number(rateRows[0].nightly_rate);
+      const nightly_rate = Number(unitRows[0].nightly_rate);
       const nights       = Math.round((new Date(check_out) - new Date(check_in)) / 86400000);
       const total_amount = (nights * nightly_rate).toFixed(2);
 
@@ -128,27 +128,55 @@ const reservationService = {
   },
 
   async cancelReservation(reservation_id, user_id, isAdmin = false) {
-    if (!isAdmin) {
-      const [rows] = await pool.execute(
-        `SELECT reservation_id FROM reservations WHERE reservation_id = ? AND user_id = ?`,
-        [reservation_id, user_id]
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      // Lock the row for the duration of the transaction so a concurrent cancel
+      // cannot read the same status and proceed past the checks below.
+      const [rows] = await conn.execute(
+        `SELECT reservation_id, user_id, status FROM reservations WHERE reservation_id = ? FOR UPDATE`,
+        [reservation_id]
       );
+
       if (!rows.length) {
-        const err = new Error('Not found or not allowed');
+        const err = new Error('Reservation not found.');
+        err.code = 'NOT_FOUND';
+        throw err;
+      }
+
+      const reservation = rows[0];
+
+      if (reservation.status === 'cancelled') {
+        const err = new Error('Reservation is already cancelled.');
+        err.code = 'ALREADY_CANCELLED';
+        throw err;
+      }
+
+      if (!isAdmin && reservation.user_id !== user_id) {
+        const err = new Error('Not found or not allowed.');
         err.code = 'NOT_ALLOWED';
         throw err;
       }
+
+      await conn.execute(
+        `UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ?`,
+        [reservation_id]
+      );
+
+      // Only void invoices that are still unpaid — paid or already-voided invoices are not touched.
+      await conn.execute(
+        `UPDATE invoices SET status = 'voided' WHERE reservation_id = ? AND status = 'unpaid'`,
+        [reservation_id]
+      );
+
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-    const [result] = await pool.execute(
-      `UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ?`,
-      [reservation_id]
-    );
-    // Void the associated invoice so it no longer appears as an outstanding balance.
-    await pool.execute(
-      `UPDATE invoices SET status = 'voided' WHERE reservation_id = ?`,
-      [reservation_id]
-    );
-    return result.affectedRows > 0;
   },
 };
 

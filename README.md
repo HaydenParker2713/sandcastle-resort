@@ -139,6 +139,9 @@ Register any email address to get a guest account.
 | POST   | `/`                 | Admin | Create unit |
 | GET    | `/:id/availability` | None  | Booked date ranges for a unit |
 | PATCH  | `/:id/status`       | Admin | Update unit status |
+| PATCH  | `/:id/details`      | Admin | Update unit description and nightly rate |
+| PATCH  | `/:id/photo`        | Admin | Upload unit photo |
+| DELETE | `/:id`              | Admin | Delete unit |
 
 ### Reservations — `/api/reservations`
 
@@ -219,8 +222,7 @@ sandcastle-resort/
 │   ├── activities.js           Activities page logic
 │   ├── forgot-password.js
 │   ├── reset-password.js
-│   ├── darktheme.js            Applies stored theme before first render
-│   ├── theme-init.js           Theme setup helper
+│   ├── theme-init.js           Applies stored theme before first render
 │   └── styles.css              Main stylesheet with dark mode support
 ├── routes/                     Express route handlers
 │   ├── authRoutes.js
@@ -232,7 +234,8 @@ sandcastle-resort/
 │   ├── eventRoutes.js
 │   ├── barRoutes.js
 │   ├── activityListRoutes.js
-│   └── adminRoutes.js
+│   ├── adminRoutes.js
+│   └── unitTypeRoutes.js
 ├── utils/
 │   ├── audit.js                logAction() — admin action logging
 │   └── email.js                Nodemailer helpers

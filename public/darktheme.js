@@ -1,1 +1,0 @@
-if(localStorage.getItem('sc_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');

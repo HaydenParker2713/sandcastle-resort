@@ -101,8 +101,7 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
 
     try {
       const resInfo = await reservationService.getReservationById(reservation_id);
-      const ok = await reservationService.cancelReservation(reservation_id, user_id, isAdmin);
-      if (!ok) return res.status(404).json({ error: 'Reservation not found.' });
+      await reservationService.cancelReservation(reservation_id, user_id, isAdmin);
 
       const actor = req.session.user;
       logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
@@ -118,7 +117,9 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
         });
       res.json({ message: 'Reservation cancelled.' });
     } catch (err) {
-      if (err.code === 'NOT_ALLOWED') return res.status(403).json({ error: 'Not allowed.' });
+      if (err.code === 'NOT_FOUND')         return res.status(404).json({ error: 'Reservation not found.' });
+      if (err.code === 'ALREADY_CANCELLED') return res.status(409).json({ error: 'Reservation is already cancelled.' });
+      if (err.code === 'NOT_ALLOWED')       return res.status(403).json({ error: 'Not allowed.' });
       throw err;
     }
   } catch (err) {

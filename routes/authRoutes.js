@@ -32,6 +32,9 @@ router.post('/register', async (req, res) => {
     if (!first_name || !last_name || !email || !password) {
       return res.status(400).json({ error: 'All fields are required.' });
     }
+    if (first_name.length > 50 || last_name.length > 50) {
+      return res.status(400).json({ error: 'Name must be 50 characters or fewer.' });
+    }
     if (!EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Invalid email address.' });
     }
@@ -103,6 +106,9 @@ router.patch('/profile', requireAuth, async (req, res) => {
     const { first_name, last_name, email } = req.body;
     if (!first_name || !last_name || !email) {
       return res.status(400).json({ error: 'All fields are required.' });
+    }
+    if (first_name.length > 50 || last_name.length > 50) {
+      return res.status(400).json({ error: 'Name must be 50 characters or fewer.' });
     }
     if (!EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Invalid email address.' });

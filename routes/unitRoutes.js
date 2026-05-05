@@ -111,7 +111,7 @@ router.patch('/:id/status', requireRole(ROLES.ADMIN), async (req, res) => {
   }
 });
 
-router.patch('/:id/details', ...requireRole(ROLES.ADMIN), async (req, res) => {
+router.patch('/:id/details', requireRole(ROLES.ADMIN), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid unit ID.' });
@@ -160,7 +160,7 @@ router.patch('/:id/details', ...requireRole(ROLES.ADMIN), async (req, res) => {
   }
 });
 
-router.delete('/:id', ...requireRole(ROLES.ADMIN), async (req, res) => {
+router.delete('/:id', requireRole(ROLES.ADMIN), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid unit ID.' });
@@ -180,7 +180,7 @@ router.delete('/:id', ...requireRole(ROLES.ADMIN), async (req, res) => {
   }
 });
 
-router.patch('/:id/photo', ...requireRole(ROLES.ADMIN), async (req, res) => {
+router.patch('/:id/photo', requireRole(ROLES.ADMIN), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid unit ID.' });

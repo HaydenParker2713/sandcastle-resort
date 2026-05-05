@@ -54,6 +54,12 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
     });
     res.status(201).json({ message: 'Review submitted.', review_id });
   } catch (err) {
+    // ER_DUP_ENTRY fires when two requests pass the duplicate check simultaneously
+    // and both attempt the INSERT. The UNIQUE constraint on reservation_id catches
+    // the second one and we return the same 409 the soft check would have returned.
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'You already reviewed this stay.' });
+    }
     console.error('Create review error:', err);
     res.status(500).json({ error: 'Server error submitting review.' });
   }

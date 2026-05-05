@@ -84,29 +84,24 @@ const authService = {
     return { token, user: rows[0] };
   },
 
-  async validateResetToken(token) {
-    const [rows] = await pool.execute(
-      `SELECT user_id, first_name, email FROM users
-       WHERE reset_token = ? AND reset_token_expiry > NOW()`,
-      [token]
-    );
-    return rows[0] || null;
-  },
-
   async resetPasswordByToken(token, newPassword) {
-    const user = await this.validateResetToken(token);
-    if (!user) {
+    // Hash first — bcrypt is slow and must not run inside a row lock.
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    // Single atomic UPDATE: matches only if the token exists and has not expired.
+    // Clears the token in the same statement, so a second concurrent request with
+    // the same token finds reset_token = NULL and gets affectedRows = 0.
+    const [result] = await pool.execute(
+      `UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL
+       WHERE reset_token = ? AND reset_token_expiry > NOW()`,
+      [hash, token]
+    );
+
+    if (result.affectedRows === 0) {
       const err = new Error('Reset link is invalid or has expired.');
       err.code = 'INVALID_TOKEN';
       throw err;
     }
-    const hash = await bcrypt.hash(newPassword, 10);
-    await pool.execute(
-      `UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL
-       WHERE user_id = ?`,
-      [hash, user.user_id]
-    );
-    return user;
   },
 
   async updateProfile(user_id, { first_name, last_name, email }) {
