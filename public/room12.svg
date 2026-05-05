@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="sky12" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="30%" stop-color="#1e3a5f"/>
+      <stop offset="55%" stop-color="#c2511a"/>
+      <stop offset="75%" stop-color="#f97316"/>
+      <stop offset="90%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#fef3c7"/>
+    </linearGradient>
+    <linearGradient id="ocean12" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a6fa0"/>
+      <stop offset="100%" stop-color="#0a2d45"/>
+    </linearGradient>
+    <linearGradient id="deck12" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f7ede0"/>
+      <stop offset="100%" stop-color="#dfc9a8"/>
+    </linearGradient>
+  </defs>
+  <!-- Sky -->
+  <rect width="600" height="292" fill="url(#sky12)"/>
+  <!-- Stars -->
+  <circle cx="55"  cy="22"  r="1.5" fill="white" opacity="0.8"/>
+  <circle cx="148" cy="14"  r="1"   fill="white" opacity="0.7"/>
+  <circle cx="225" cy="38"  r="1.5" fill="white" opacity="0.6"/>
+  <circle cx="318" cy="16"  r="1"   fill="white" opacity="0.8"/>
+  <circle cx="78"  cy="52"  r="1"   fill="white" opacity="0.5"/>
+  <circle cx="400" cy="28"  r="1.2" fill="white" opacity="0.6"/>
+  <circle cx="480" cy="18"  r="1"   fill="white" opacity="0.7"/>
+  <circle cx="555" cy="38"  r="1.3" fill="white" opacity="0.65"/>
+  <!-- Sun setting large -->
+  <circle cx="480" cy="200" r="75" fill="#fed84b" opacity="0.18"/>
+  <circle cx="480" cy="200" r="55" fill="#f97316" opacity="0.35"/>
+  <circle cx="480" cy="200" r="36" fill="#fcd34d" opacity="0.75"/>
+  <circle cx="480" cy="200" r="22" fill="#fef9c3" opacity="0.95"/>
+  <!-- Horizon glow -->
+  <ellipse cx="480" cy="290" rx="180" ry="22" fill="#f97316" opacity="0.35"/>
+  <!-- Cloud left -->
+  <ellipse cx="120" cy="78" rx="72" ry="22" fill="white" opacity="0.18"/>
+  <ellipse cx="165" cy="66" rx="52" ry="20" fill="white" opacity="0.14"/>
+  <!-- Cloud right -->
+  <ellipse cx="360" cy="55" rx="55" ry="18" fill="white" opacity="0.14"/>
+  <!-- Ocean -->
+  <rect y="255" width="600" height="100" fill="url(#ocean12)"/>
+  <!-- Sun trail on water -->
+  <path d="M390,270 Q435,265 480,272 Q525,278 555,268 L555,285 Q520,295 480,290 Q435,283 390,285Z" fill="#fcd34d" opacity="0.28"/>
+  <!-- Waves -->
+  <path d="M0,265 C80,257 160,275 240,265 C320,255 400,273 480,265 C538,258 570,268 600,265 L600,278 L0,278Z" fill="#38bdf8" opacity="0.48"/>
+  <path d="M0,288 C70,280 155,298 240,288 C325,278 410,296 490,288 C545,282 574,292 600,288 L600,303 L0,303Z" fill="#0ea5e9" opacity="0.32"/>
+  <path d="M0,315 C80,307 165,325 250,315 C335,305 420,323 505,315 C555,309 578,318 600,315 L600,330 L0,330Z" fill="#0369a1" opacity="0.25"/>
+  <!-- Balcony deck wide -->
+  <rect y="352" width="600" height="48" fill="url(#deck12)"/>
+  <line x1="0" y1="362" x2="600" y2="362" stroke="#d0bea0" stroke-width="1"/>
+  <line x1="0" y1="374" x2="600" y2="374" stroke="#d0bea0" stroke-width="1"/>
+  <line x1="0" y1="386" x2="600" y2="386" stroke="#d0bea0" stroke-width="1"/>
+  <!-- Railing elegant -->
+  <rect y="340" width="600" height="13" fill="#c5b49a" rx="4"/>
+  <rect y="314" width="600" height="8"  fill="#c5b49a" rx="3"/>
+  <rect x="8"   y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="44"  y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="80"  y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="116" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="152" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="188" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="224" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="260" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="296" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="332" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="368" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="404" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="440" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="476" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="512" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="548" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <rect x="584" y="314" width="5" height="40" fill="#c5b49a" rx="2"/>
+  <!-- Sailboats -->
+  <path d="M160,248 L172,230 L180,248Z" fill="#0c3d5e" opacity="0.6"/>
+  <line x1="172" y1="248" x2="172" y2="230" stroke="#0c3d5e" stroke-width="1.5" opacity="0.6"/>
+  <path d="M330,243 L340,228 L348,243Z" fill="#0c3d5e" opacity="0.55"/>
+  <line x1="340" y1="243" x2="340" y2="228" stroke="#0c3d5e" stroke-width="1.5" opacity="0.55"/>
+  <!-- Two palms flanking -->
+  <rect x="20" y="112" width="13" height="200" fill="#7c4b0c" rx="4"/>
+  <ellipse cx="26" cy="104" rx="40" ry="15" fill="#22c55e" transform="rotate(-5 26 104)"/>
+  <ellipse cx="-2" cy="116" rx="36" ry="12" fill="#16a34a" transform="rotate(-42 -2 116)"/>
+  <ellipse cx="56" cy="116" rx="36" ry="12" fill="#16a34a" transform="rotate(38 56 116)"/>
+  <ellipse cx="6"  cy="98"  rx="28" ry="10" fill="#4ade80" transform="rotate(-60 6 98)"/>
+  <ellipse cx="46" cy="98"  rx="28" ry="10" fill="#4ade80" transform="rotate(55 46 98)"/>
+  <rect x="567" y="112" width="13" height="200" fill="#7c4b0c" rx="4"/>
+  <ellipse cx="574" cy="104" rx="40" ry="15" fill="#22c55e" transform="rotate(5 574 104)"/>
+  <ellipse cx="544" cy="116" rx="36" ry="12" fill="#16a34a" transform="rotate(-38 544 116)"/>
+  <ellipse cx="604" cy="116" rx="36" ry="12" fill="#16a34a" transform="rotate(42 604 116)"/>
+  <ellipse cx="554" cy="98"  rx="28" ry="10" fill="#4ade80" transform="rotate(-55 554 98)"/>
+  <ellipse cx="594" cy="98"  rx="28" ry="10" fill="#4ade80" transform="rotate(60 594 98)"/>
+</svg>

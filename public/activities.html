@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activities – Sandcastle Resort</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/theme-init.js"></script>
+  <style>
+    /* ── Activities Nav ── */
+    .fac-nav { background:#fff; border-bottom:1px solid #e5f0f0; position:sticky; top:0; z-index:200; box-shadow:0 2px 8px rgba(12,74,74,.07); }
+    .fac-nav-inner { max-width:1100px; margin:0 auto; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+    .fac-brand { display:flex; align-items:center; gap:10px; font-weight:700; color:#0c4a4a; font-size:16px; text-decoration:none; }
+    .fac-brand img { width:38px; border-radius:8px; }
+
+    /* ── Hero banner ── */
+    .fac-hero {
+      background: linear-gradient(135deg,#0c4a4a 0%,#0ea5a4 60%,#38bdf8 100%);
+      color:#fff; padding:56px 24px 48px; text-align:center;
+    }
+    .fac-hero h1 { font-size:2.2rem; font-weight:800; margin:0 0 10px; color:#fff; }
+    .fac-hero p  { font-size:1.05rem; margin:0; opacity:.88; }
+
+    /* ── Section tabs ── */
+    .fac-tabs { display:flex; gap:4px; background:#fff; padding:6px; border-radius:12px; border:1px solid #e8f2f2; margin:28px 0 24px; box-shadow:0 2px 8px rgba(12,74,74,.06); flex-wrap:wrap; }
+    .fac-tab  { flex:1; padding:11px 16px; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; background:transparent; color:#6b7280; transition:.15s; white-space:nowrap; text-align:center; }
+    .fac-tab:hover  { background:#f0f9f9; color:#0ea5a4; }
+    .fac-tab.active { background:#0ea5a4; color:#fff; }
+    .fac-panel { display:none; }
+    .fac-panel.active { display:block; }
+
+    /* ── Event cards ── */
+    .event-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; }
+    .event-card { background:#fff; border-radius:12px; border:1px solid #e8f2f2; box-shadow:0 2px 8px rgba(12,74,74,.06); overflow:hidden; }
+    .event-banner { height:80px; display:flex; align-items:center; justify-content:center; font-size:2.8rem; }
+    .event-body { padding:16px 18px; }
+    .event-date { font-size:12px; font-weight:700; color:#0ea5a4; text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+    .event-title { font-size:1rem; font-weight:700; color:#0c4a4a; margin:0 0 6px; }
+    .event-desc { font-size:13px; color:#6b7280; margin:0 0 12px; line-height:1.5; }
+    .event-meta { display:flex; gap:14px; font-size:12px; color:#9ca3af; }
+    .event-meta span::before { margin-right:4px; }
+
+    /* ── Bar menu ── */
+    .menu-category { margin-bottom:32px; }
+    .menu-category h3 { font-size:1rem; font-weight:700; color:#0c4a4a; margin:0 0 14px; display:flex; align-items:center; gap:8px; padding-bottom:8px; border-bottom:2px solid #e8f2f2; }
+    .menu-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+    .menu-item { background:#fff; border-radius:10px; border:1px solid #e8f2f2; padding:14px 16px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; box-shadow:0 2px 6px rgba(12,74,74,.05); }
+    .menu-item-info h4 { font-size:14px; font-weight:700; color:#111827; margin:0 0 3px; }
+    .menu-item-info p  { font-size:12px; color:#6b7280; margin:0; line-height:1.4; }
+    .menu-price { font-size:15px; font-weight:800; color:#0ea5a4; white-space:nowrap; }
+
+    /* ── Activities ── */
+    .activity-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+    .activity-card { background:#fff; border-radius:12px; border:1px solid #e8f2f2; box-shadow:0 2px 8px rgba(12,74,74,.06); padding:20px; }
+    .activity-icon { font-size:2.2rem; margin-bottom:10px; }
+    .activity-card h3 { font-size:1rem; font-weight:700; color:#0c4a4a; margin:0 0 6px; }
+    .activity-card p  { font-size:13px; color:#6b7280; margin:0 0 12px; line-height:1.5; }
+    .activity-tags { display:flex; flex-wrap:wrap; gap:6px; }
+    .activity-tag { background:#e8f5f5; color:#0ea5a4; font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; }
+    .activity-tag.free { background:#d1fae5; color:#065f46; }
+    .activity-tag.paid { background:#fef3c7; color:#92400e; }
+
+    /* ── Dark overrides ── */
+    [data-theme="dark"] .fac-nav  { background:#1e293b; border-bottom-color:#334155; }
+    [data-theme="dark"] .fac-brand { color:#5eead4; }
+    [data-theme="dark"] .fac-tabs { background:#1e293b; border-color:#334155; }
+    [data-theme="dark"] .fac-tab:hover { background:#334155; }
+    [data-theme="dark"] .event-card,
+    [data-theme="dark"] .menu-item,
+    [data-theme="dark"] .activity-card { background:#1e293b; border-color:#334155; }
+    [data-theme="dark"] .event-title,
+    [data-theme="dark"] .activity-card h3,
+    [data-theme="dark"] .menu-category h3 { color:#5eead4; }
+    [data-theme="dark"] .menu-item-info h4 { color:#e2e8f0; }
+    [data-theme="dark"] .menu-category h3 { border-bottom-color:#334155; }
+    [data-theme="dark"] .activity-tag { background:#1e3a3a; }
+
+    @media(max-width:600px){
+      .fac-hero h1 { font-size:1.6rem; }
+      .fac-tabs { flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="fac-nav">
+    <div class="fac-nav-inner">
+      <a href="/" class="fac-brand">
+        <img src="/logo.svg" alt="logo" />
+        Sandcastle Resort
+      </a>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="themeToggleBtn" class="theme-toggle" title="Toggle dark / light mode">🌙</button>
+        <a href="/dashboard" class="btn-secondary" style="font-size:13px;padding:7px 14px">My Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="fac-hero">
+    <h1>🏖️ Resort Activities</h1>
+    <p>Events, dining, and activities — everything you need for the perfect stay.</p>
+  </div>
+
+  <main class="container" style="padding-bottom:48px">
+
+    <div class="fac-tabs">
+      <button class="fac-tab active" data-panel="panel-events">🎉 Upcoming Events</button>
+      <button class="fac-tab" data-panel="panel-bar">🍹 Bar &amp; Dining</button>
+      <button class="fac-tab" data-panel="panel-activities">🤿 Activities</button>
+    </div>
+
+    <!-- ══ Events ════════════════════════════════════════════════════════════ -->
+    <div id="panel-events" class="fac-panel active">
+      <div id="eventsGrid" class="event-grid">
+        <p style="color:#6b7280;font-size:14px">Loading events…</p>
+      </div>
+    </div>
+
+    <!-- ══ Bar & Dining ══════════════════════════════════════════════════════ -->
+    <div id="panel-bar" class="fac-panel">
+      <div id="barMenuContainer"><p class="muted" style="font-size:14px">Loading menu…</p></div>
+      <p class="muted" style="font-size:12px;margin-top:16px">Bar hours: 10:00 AM – 11:00 PM daily. Menu subject to seasonal availability. Gratuity not included.</p>
+    </div>
+
+    <!-- ══ Activities ════════════════════════════════════════════════════════ -->
+    <div id="panel-activities" class="fac-panel">
+      <div id="activitiesContainer" class="activity-grid">
+        <p class="muted" style="font-size:14px">Loading activities…</p>
+      </div>
+
+      <p class="muted" style="font-size:12px;margin-top:24px">Activity availability may vary by weather and season. Contact the front desk to book or for more information.</p>
+    </div>
+
+  </main>
+
+  <footer class="container">
+    &copy; 2026 Sandcastle Resort &nbsp;·&nbsp; <a href="/">Back to Home</a> &nbsp;·&nbsp; <a href="/dashboard">My Dashboard</a>
+  </footer>
+
+  <script src="/api.js"></script>
+  <script src="/activities.js"></script>
+
+</body>
+</html>

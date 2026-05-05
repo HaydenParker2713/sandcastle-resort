@@ -1,4 +1,97 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
-  <rect width="600" height="400" fill="#06b6d4"/>
-  <text x="50%" y="50%" fill="#fff" font-size="22" font-family="Arial" text-anchor="middle">Standard Suite - Main</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="sky5" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="55%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#bfdbfe"/>
+    </linearGradient>
+    <linearGradient id="lawn5" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+    <linearGradient id="path5" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e7d5b3"/>
+      <stop offset="100%" stop-color="#d4b483"/>
+    </linearGradient>
+  </defs>
+  <!-- Sky -->
+  <rect width="600" height="220" fill="url(#sky5)"/>
+  <!-- Sun -->
+  <circle cx="480" cy="65" r="45" fill="#fef9c3" opacity="0.8"/>
+  <circle cx="480" cy="65" r="32" fill="#fef08a"/>
+  <!-- Cloud 1 -->
+  <ellipse cx="110" cy="70" rx="80" ry="24" fill="white" opacity="0.88"/>
+  <ellipse cx="155" cy="57" rx="60" ry="22" fill="white" opacity="0.92"/>
+  <ellipse cx="70" cy="77" rx="48" ry="18" fill="white" opacity="0.82"/>
+  <!-- Cloud 2 -->
+  <ellipse cx="330" cy="50" rx="60" ry="20" fill="white" opacity="0.75"/>
+  <ellipse cx="365" cy="42" rx="42" ry="17" fill="white" opacity="0.7"/>
+  <!-- Building wall (upper) -->
+  <rect y="170" width="600" height="80" fill="#f1e8d8"/>
+  <!-- Windows -->
+  <rect x="40" y="182" width="55" height="42" fill="#bfdbfe" rx="3"/>
+  <rect x="42" y="184" width="25" height="38" fill="#93c5fd" rx="2"/>
+  <rect x="69" y="184" width="24" height="38" fill="#7dd3fc" rx="2"/>
+  <rect x="160" y="182" width="55" height="42" fill="#bfdbfe" rx="3"/>
+  <rect x="162" y="184" width="25" height="38" fill="#93c5fd" rx="2"/>
+  <rect x="189" y="184" width="24" height="38" fill="#7dd3fc" rx="2"/>
+  <rect x="390" y="182" width="55" height="42" fill="#bfdbfe" rx="3"/>
+  <rect x="392" y="184" width="25" height="38" fill="#93c5fd" rx="2"/>
+  <rect x="419" y="184" width="24" height="38" fill="#7dd3fc" rx="2"/>
+  <rect x="510" y="182" width="55" height="42" fill="#bfdbfe" rx="3"/>
+  <rect x="512" y="184" width="25" height="38" fill="#93c5fd" rx="2"/>
+  <rect x="539" y="184" width="24" height="38" fill="#7dd3fc" rx="2"/>
+  <!-- Roofline detail -->
+  <rect y="166" width="600" height="8" fill="#d4c4a8"/>
+  <!-- Lawn -->
+  <rect y="248" width="600" height="152" fill="url(#lawn5)"/>
+  <!-- Stepping stone path -->
+  <rect x="270" y="248" width="60" height="152" fill="url(#path5)"/>
+  <line x1="270" y1="270" x2="330" y2="270" stroke="#c9a86c" stroke-width="1"/>
+  <line x1="270" y1="295" x2="330" y2="295" stroke="#c9a86c" stroke-width="1"/>
+  <line x1="270" y1="320" x2="330" y2="320" stroke="#c9a86c" stroke-width="1"/>
+  <line x1="270" y1="345" x2="330" y2="345" stroke="#c9a86c" stroke-width="1"/>
+  <line x1="270" y1="370" x2="330" y2="370" stroke="#c9a86c" stroke-width="1"/>
+  <!-- Left hedge -->
+  <rect x="0" y="248" width="260" height="30" fill="#16a34a"/>
+  <ellipse cx="40" cy="248" rx="28" ry="14" fill="#15803d"/>
+  <ellipse cx="90" cy="246" rx="32" ry="15" fill="#16a34a"/>
+  <ellipse cx="145" cy="248" rx="28" ry="13" fill="#14532d"/>
+  <ellipse cx="200" cy="247" rx="30" ry="14" fill="#15803d"/>
+  <!-- Right hedge -->
+  <rect x="340" y="248" width="260" height="30" fill="#16a34a"/>
+  <ellipse cx="390" cy="248" rx="28" ry="14" fill="#14532d"/>
+  <ellipse cx="440" cy="246" rx="30" ry="15" fill="#15803d"/>
+  <ellipse cx="495" cy="248" rx="32" ry="13" fill="#16a34a"/>
+  <ellipse cx="555" cy="247" rx="28" ry="14" fill="#15803d"/>
+  <!-- Flowers left -->
+  <circle cx="30" cy="286" r="6" fill="#fbbf24"/>
+  <circle cx="55" cy="292" r="5" fill="#f472b6"/>
+  <circle cx="80" cy="284" r="6" fill="#fbbf24"/>
+  <circle cx="105" cy="290" r="5" fill="#f472b6"/>
+  <circle cx="135" cy="285" r="6" fill="#c084fc"/>
+  <circle cx="155" cy="292" r="5" fill="#fbbf24"/>
+  <circle cx="180" cy="285" r="6" fill="#f472b6"/>
+  <circle cx="210" cy="289" r="5" fill="#c084fc"/>
+  <circle cx="235" cy="283" r="6" fill="#fbbf24"/>
+  <!-- Flowers right -->
+  <circle cx="365" cy="286" r="6" fill="#c084fc"/>
+  <circle cx="390" cy="292" r="5" fill="#fbbf24"/>
+  <circle cx="415" cy="284" r="6" fill="#f472b6"/>
+  <circle cx="445" cy="290" r="5" fill="#c084fc"/>
+  <circle cx="470" cy="285" r="6" fill="#fbbf24"/>
+  <circle cx="500" cy="291" r="5" fill="#f472b6"/>
+  <circle cx="525" cy="284" r="6" fill="#c084fc"/>
+  <circle cx="555" cy="288" r="5" fill="#fbbf24"/>
+  <circle cx="580" cy="283" r="6" fill="#f472b6"/>
+  <!-- Big garden tree left -->
+  <rect x="62" y="180" width="14" height="75" fill="#92400e" rx="3"/>
+  <ellipse cx="69" cy="172" rx="42" ry="30" fill="#16a34a" opacity="0.9"/>
+  <ellipse cx="50" cy="160" rx="30" ry="22" fill="#15803d" opacity="0.8"/>
+  <ellipse cx="88" cy="160" rx="30" ry="22" fill="#15803d" opacity="0.8"/>
+  <!-- Big garden tree right -->
+  <rect x="524" y="180" width="14" height="75" fill="#92400e" rx="3"/>
+  <ellipse cx="531" cy="172" rx="42" ry="30" fill="#16a34a" opacity="0.9"/>
+  <ellipse cx="512" cy="160" rx="30" ry="22" fill="#15803d" opacity="0.8"/>
+  <ellipse cx="550" cy="160" rx="30" ry="22" fill="#15803d" opacity="0.8"/>
 </svg>

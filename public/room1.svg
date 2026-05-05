@@ -1,4 +1,76 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
-  <rect width="600" height="400" fill="#0ea5a4"/>
-  <text x="50%" y="50%" fill="#fff" font-size="28" font-family="Arial" text-anchor="middle">Oceanfront Suite</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="45%" stop-color="#1e4d8c"/>
+      <stop offset="78%" stop-color="#c2511a"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+    <linearGradient id="ocean1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a7fad"/>
+      <stop offset="100%" stop-color="#0c3d5e"/>
+    </linearGradient>
+    <linearGradient id="deck1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f7ede0"/>
+      <stop offset="100%" stop-color="#e0cdb0"/>
+    </linearGradient>
+  </defs>
+  <!-- Sky -->
+  <rect width="600" height="290" fill="url(#sky1)"/>
+  <!-- Stars -->
+  <circle cx="60" cy="25" r="1.5" fill="white" opacity="0.8"/>
+  <circle cx="150" cy="15" r="1" fill="white" opacity="0.7"/>
+  <circle cx="220" cy="38" r="1.5" fill="white" opacity="0.6"/>
+  <circle cx="320" cy="18" r="1" fill="white" opacity="0.8"/>
+  <circle cx="80" cy="52" r="1" fill="white" opacity="0.5"/>
+  <circle cx="390" cy="30" r="1.2" fill="white" opacity="0.6"/>
+  <!-- Sun with glow -->
+  <circle cx="455" cy="195" r="70" fill="#fef3c7" opacity="0.15"/>
+  <circle cx="455" cy="195" r="48" fill="#fed84b" opacity="0.85"/>
+  <circle cx="455" cy="195" r="32" fill="#fef08a"/>
+  <!-- Cloud -->
+  <ellipse cx="130" cy="75" rx="65" ry="20" fill="white" opacity="0.2"/>
+  <ellipse cx="170" cy="68" rx="50" ry="18" fill="white" opacity="0.15"/>
+  <!-- Ocean -->
+  <rect y="250" width="600" height="150" fill="url(#ocean1)"/>
+  <!-- Sun reflection -->
+  <ellipse cx="455" cy="268" rx="55" ry="10" fill="#fed84b" opacity="0.25"/>
+  <!-- Waves -->
+  <path d="M0,265 C80,255 160,275 240,265 C320,255 400,275 480,265 C540,257 570,269 600,265 L600,278 L0,278Z" fill="#38bdf8" opacity="0.55"/>
+  <path d="M0,292 C80,282 160,302 240,292 C320,282 400,302 480,292 C540,284 570,296 600,292 L600,308 L0,308Z" fill="#0ea5e9" opacity="0.35"/>
+  <path d="M0,322 C80,312 160,332 240,322 C320,312 400,332 480,322 C540,314 570,326 600,322 L600,338 L0,338Z" fill="#0369a1" opacity="0.28"/>
+  <!-- Distant sailboat -->
+  <path d="M335,248 L350,232 L358,248Z" fill="#0c3d5e" opacity="0.6"/>
+  <line x1="350" y1="248" x2="350" y2="232" stroke="#0c3d5e" stroke-width="1.5" opacity="0.6"/>
+  <!-- Balcony deck -->
+  <rect y="352" width="600" height="48" fill="url(#deck1)"/>
+  <line x1="0" y1="362" x2="600" y2="362" stroke="#d0bea0" stroke-width="1"/>
+  <line x1="0" y1="374" x2="600" y2="374" stroke="#d0bea0" stroke-width="1"/>
+  <line x1="0" y1="386" x2="600" y2="386" stroke="#d0bea0" stroke-width="1"/>
+  <!-- Railing -->
+  <rect y="340" width="600" height="14" fill="#c5b49a" rx="4"/>
+  <rect y="312" width="600" height="8" fill="#c5b49a" rx="3"/>
+  <rect x="8" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="48" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="88" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="128" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="168" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="208" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="248" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="288" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="328" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="368" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="408" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="448" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="488" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="528" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <rect x="568" y="312" width="5" height="42" fill="#c5b49a" rx="2"/>
+  <!-- Palm tree -->
+  <rect x="22" y="118" width="13" height="200" fill="#7c4b0c" rx="4"/>
+  <ellipse cx="28" cy="110" rx="40" ry="15" fill="#22c55e" transform="rotate(-5 28 110)"/>
+  <ellipse cx="-2" cy="122" rx="36" ry="12" fill="#16a34a" transform="rotate(-42 -2 122)"/>
+  <ellipse cx="60" cy="122" rx="36" ry="12" fill="#16a34a" transform="rotate(38 60 122)"/>
+  <ellipse cx="8" cy="105" rx="28" ry="10" fill="#4ade80" transform="rotate(-62 8 105)"/>
+  <ellipse cx="48" cy="105" rx="28" ry="10" fill="#4ade80" transform="rotate(57 48 105)"/>
+  <ellipse cx="28" cy="98" rx="22" ry="9" fill="#86efac" transform="rotate(-10 28 98)"/>
 </svg>
