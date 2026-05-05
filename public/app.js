@@ -213,8 +213,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       calendarYearFilter.active = true;
       calendarYearFilter.year = Number(yearValue);
-      if (calendarMonthState.month === null) resetCalendarMonth();
-      calendarMonthState.year = calendarYearFilter.year; // jump to Jan of selected year
+      calendarMonthState.year  = calendarYearFilter.year;
+      calendarMonthState.month = 0; // jump to January of the selected year
     }
     updateCalendarLabel();
     updateNavButtons();

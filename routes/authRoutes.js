@@ -39,11 +39,11 @@ router.post("/register", async (req, res) => {
 
     const user = await authService.register({ first_name, last_name, email, password });
 
-    req.session.user = user;
-
-    res.status(201).json({
-      message: "Registration successful.",
-      user
+    // Regenerate the session ID on registration to prevent session fixation attacks.
+    req.session.regenerate((err) => {
+      if (err) return res.status(500).json({ error: "Session error." });
+      req.session.user = user;
+      res.status(201).json({ message: "Registration successful.", user });
     });
   } catch (error) {
     console.error("Register error:", error);
@@ -69,17 +69,17 @@ router.post("/login", loginLimiter, async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
-    req.session.user = {
-      user_id:    user.user_id,
-      first_name: user.first_name,
-      last_name:  user.last_name,
-      email:      user.email,
-      role_name:  user.role_name
-    };
-
-    res.json({
-      message: "Login successful.",
-      user: req.session.user
+    // Regenerate the session ID on login to prevent session fixation attacks.
+    req.session.regenerate((err) => {
+      if (err) return res.status(500).json({ error: "Session error." });
+      req.session.user = {
+        user_id:    user.user_id,
+        first_name: user.first_name,
+        last_name:  user.last_name,
+        email:      user.email,
+        role_name:  user.role_name
+      };
+      res.json({ message: "Login successful.", user: req.session.user });
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -134,6 +134,7 @@ router.post("/change-password", requireAuth, async (req, res) => {
     }
 
     const user = await authService.findByEmail(req.session.user.email);
+    if (!user) return res.status(401).json({ error: "Account not found." });
     const match = await authService.verifyPassword(current_password, user.password_hash);
     if (!match) {
       return res.status(401).json({ error: "Current password is incorrect." });

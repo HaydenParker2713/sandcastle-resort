@@ -143,7 +143,7 @@ CREATE TABLE invoices (
   invoice_id     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   reservation_id BIGINT UNSIGNED NOT NULL,
   total_amount   DECIMAL(10,2)  NOT NULL,
-  status         ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid',
+  status         ENUM('unpaid','paid','voided') NOT NULL DEFAULT 'unpaid',
   created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (invoice_id),

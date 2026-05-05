@@ -387,15 +387,17 @@ const reservationService = {
     }
   },
 
-  // Fetches only the logged-in user's confirmed reservations (not cancelled ones)
+  // Fetches all reservations for the logged-in user (confirmed and cancelled).
+  // Uses COALESCE so per-unit rate overrides are reflected in the display rate.
   async getReservationsByUser(user_id) {
     const [rows] = await pool.execute(
       `SELECT r.reservation_id, r.check_in, r.check_out, r.adults, r.children, r.status,
-              u.unit_code, ut.type_name, ut.nightly_rate
+              u.unit_code, ut.type_name,
+              COALESCE(u.nightly_rate, ut.nightly_rate) AS nightly_rate
        FROM reservations r
        JOIN units u ON r.unit_id = u.unit_id
        JOIN unit_types ut ON u.unit_type_id = ut.unit_type_id
-       WHERE r.user_id = ? AND r.status = 'confirmed'
+       WHERE r.user_id = ?
        ORDER BY r.check_in DESC`,
       [user_id]
     );
@@ -467,6 +469,11 @@ const reservationService = {
     }
     const [result] = await pool.execute(
       `UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ?`,
+      [reservation_id]
+    );
+    // Void the associated invoice so it no longer appears as an outstanding balance.
+    await pool.execute(
+      `UPDATE invoices SET status = 'voided' WHERE reservation_id = ?`,
       [reservation_id]
     );
     return result.affectedRows > 0;
@@ -745,7 +752,8 @@ const barService = {
     return rows[0];
   },
   async delete(item_id) {
-    await pool.execute(`DELETE FROM bar_items WHERE item_id = ?`, [item_id]);
+    const [result] = await pool.execute(`DELETE FROM bar_items WHERE item_id = ?`, [item_id]);
+    return result.affectedRows > 0;
   }
 };
 
@@ -781,7 +789,8 @@ const activityListService = {
     return rows[0];
   },
   async delete(activity_id) {
-    await pool.execute(`DELETE FROM resort_activities WHERE activity_id = ?`, [activity_id]);
+    const [result] = await pool.execute(`DELETE FROM resort_activities WHERE activity_id = ?`, [activity_id]);
+    return result.affectedRows > 0;
   }
 };
 
@@ -808,7 +817,8 @@ const eventService = {
     `);
   },
 
-  // Public endpoint — events ordered soonest first so upcoming events appear at top
+  // Public endpoint — upcoming events first (soonest at top), then events with no date,
+  // then past events. Within each group, sorted by date then creation time.
   async getAll() {
     const [rows] = await pool.execute(
       `SELECT e.event_id, e.title, e.description, e.event_date, e.event_time,
@@ -816,7 +826,12 @@ const eventService = {
               u.first_name, u.last_name
        FROM events e
        LEFT JOIN users u ON e.created_by = u.user_id
-       ORDER BY e.event_date ASC, e.created_at ASC`
+       ORDER BY
+         CASE WHEN e.event_date IS NULL         THEN 1
+              WHEN e.event_date >= CURDATE()    THEN 0
+              ELSE 2 END ASC,
+         e.event_date ASC,
+         e.created_at ASC`
     );
     return rows;
   },

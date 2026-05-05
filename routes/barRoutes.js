@@ -43,7 +43,8 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID.' });
-    await barService.delete(id);
+    const deleted = await barService.delete(id);
+    if (!deleted) return res.status(404).json({ error: 'Item not found.' });
     res.json({ message: 'Item deleted.' });
   } catch (err) {
     console.error('Delete bar item error:', err);

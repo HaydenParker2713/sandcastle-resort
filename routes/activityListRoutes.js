@@ -42,7 +42,8 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID.' });
-    await activityListService.delete(id);
+    const deleted = await activityListService.delete(id);
+    if (!deleted) return res.status(404).json({ error: 'Activity not found.' });
     res.json({ message: 'Activity deleted.' });
   } catch (err) {
     console.error('Delete activity error:', err);
