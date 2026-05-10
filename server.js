@@ -172,6 +172,20 @@ app.get("/api/health", (req, res) => {
   res.json({ message: "Sandcastle Resort API is running." });
 });
 
+// ── Centralized error handler ─────────────────────────────────────────────────
+// Four-parameter signature is required — Express identifies error handlers this way.
+// AppErrors carry their own status; MySQL ER_DUP_ENTRY is mapped to 409 as a
+// safety net for any duplicate-key error not already wrapped by a service.
+// Only 5xx errors are logged — 4xx are expected client mistakes.
+app.use((err, req, res, next) => {
+  if (err.code === 'ER_DUP_ENTRY') {
+    return res.status(409).json({ error: 'Duplicate entry.' });
+  }
+  const status = err.status || 500;
+  if (status >= 500) console.error(err);
+  res.status(status).json({ error: err.message || 'Server error.' });
+});
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 // Before accepting requests we:
 //   1. Verify the DB connection is alive

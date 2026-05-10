@@ -14,7 +14,7 @@ const createLimiter = rateLimit({
 
 const router = express.Router();
 
-router.post('/', requireAuth, createLimiter, async (req, res) => {
+router.post('/', requireAuth, createLimiter, async (req, res, next) => {
   try {
     const user_id = req.session.user.user_id;
     const { reservation_id, rating, comment } = req.body;
@@ -53,36 +53,21 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
       comment,
     });
     res.status(201).json({ message: 'Review submitted.', review_id });
-  } catch (err) {
-    // ER_DUP_ENTRY fires when two requests pass the duplicate check simultaneously
-    // and both attempt the INSERT. The UNIQUE constraint on reservation_id catches
-    // the second one and we return the same 409 the soft check would have returned.
-    if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ error: 'You already reviewed this stay.' });
-    }
-    console.error('Create review error:', err);
-    res.status(500).json({ error: 'Server error submitting review.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.get('/mine', requireAuth, async (req, res) => {
+router.get('/mine', requireAuth, async (req, res, next) => {
   try {
     res.json(await reviewService.getReviewedReservationIds(req.session.user.user_id));
-  } catch (err) {
-    console.error('Get reviewed reservations error:', err);
-    res.status(500).json({ error: 'Server error.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.get('/unit/:unit_id', async (req, res) => {
+router.get('/unit/:unit_id', async (req, res, next) => {
   try {
     const unit_id = parseInt(req.params.unit_id, 10);
     if (isNaN(unit_id)) return res.status(400).json({ error: 'Invalid unit ID.' });
     res.json(await reviewService.getReviewsByUnit(unit_id));
-  } catch (err) {
-    console.error('Get reviews error:', err);
-    res.status(500).json({ error: 'Server error fetching reviews.' });
-  }
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

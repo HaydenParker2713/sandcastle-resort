@@ -16,7 +16,7 @@ const createLimiter = rateLimit({
 
 const router = express.Router();
 
-router.post('/', requireAuth, createLimiter, async (req, res) => {
+router.post('/', requireAuth, createLimiter, async (req, res, next) => {
   try {
     const { unit_id, ticket_type, title, description } = req.body;
 
@@ -54,26 +54,20 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
       description,
     });
     res.status(201).json({ message: 'Ticket submitted.', ticket_id });
-  } catch (err) {
-    console.error('Create ticket error:', err);
-    res.status(500).json({ error: 'Server error creating ticket.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, async (req, res, next) => {
   try {
     const isAdminOrStaff = [ROLES.ADMIN, ROLES.STAFF].includes(req.session.user.role_name);
     const rows = isAdminOrStaff
       ? await ticketService.getAllTickets()
       : await ticketService.getTicketsByUser(req.session.user.user_id);
     res.json(rows);
-  } catch (err) {
-    console.error('Get tickets error:', err);
-    res.status(500).json({ error: 'Server error fetching tickets.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.patch('/:id', requireRole(ROLES.ADMIN, ROLES.STAFF), async (req, res) => {
+router.patch('/:id', requireRole(ROLES.ADMIN, ROLES.STAFF), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ticket ID.' });
@@ -100,10 +94,7 @@ router.patch('/:id', requireRole(ROLES.ADMIN, ROLES.STAFF), async (req, res) => 
         to:          status,
       });
     res.json({ message: 'Ticket updated.' });
-  } catch (err) {
-    console.error('Update ticket error:', err);
-    res.status(500).json({ error: 'Server error updating ticket.' });
-  }
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

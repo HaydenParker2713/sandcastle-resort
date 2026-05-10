@@ -5,16 +5,13 @@ const { ROLES } = require('../constants');
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     res.json(await barService.getAll());
-  } catch (err) {
-    console.error('Get bar items error:', err);
-    res.status(500).json({ error: 'Server error.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.post('/', requireRole(ROLES.ADMIN), async (req, res) => {
+router.post('/', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const { category, name, description, price } = req.body;
 
@@ -27,23 +24,17 @@ router.post('/', requireRole(ROLES.ADMIN), async (req, res) => {
     }
 
     res.status(201).json(await barService.create({ category, name, description, price }));
-  } catch (err) {
-    console.error('Create bar item error:', err);
-    res.status(500).json({ error: 'Server error.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.delete('/:id', requireRole(ROLES.ADMIN), async (req, res) => {
+router.delete('/:id', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID.' });
     const deleted = await barService.delete(id);
     if (!deleted) return res.status(404).json({ error: 'Item not found.' });
     res.json({ message: 'Item deleted.' });
-  } catch (err) {
-    console.error('Delete bar item error:', err);
-    res.status(500).json({ error: 'Server error.' });
-  }
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

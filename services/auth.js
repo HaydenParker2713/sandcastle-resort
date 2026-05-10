@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { pool } = require('../config/db');
+const { ValidationError, ConflictError } = require('../errors');
 
 const authService = {
   async findByEmail(email) {
@@ -59,9 +60,7 @@ const authService = {
   async updateUserRole(user_id, role_name) {
     const [roles] = await pool.execute(`SELECT role_id FROM roles WHERE role_name = ?`, [role_name]);
     if (!roles.length) {
-      const err = new Error('Invalid role.');
-      err.code = 'INVALID_ROLE';
-      throw err;
+      throw new ValidationError('Invalid role.', 'INVALID_ROLE');
     }
     await pool.execute(`UPDATE users SET role_id = ? WHERE user_id = ?`, [roles[0].role_id, user_id]);
   },
@@ -98,9 +97,7 @@ const authService = {
     );
 
     if (result.affectedRows === 0) {
-      const err = new Error('Reset link is invalid or has expired.');
-      err.code = 'INVALID_TOKEN';
-      throw err;
+      throw new ValidationError('Reset link is invalid or has expired.', 'INVALID_TOKEN');
     }
   },
 
@@ -109,9 +106,7 @@ const authService = {
       `SELECT user_id FROM users WHERE email = ? AND user_id != ?`, [email, user_id]
     );
     if (existing.length) {
-      const err = new Error('Email is already in use by another account.');
-      err.code = 'EMAIL_TAKEN';
-      throw err;
+      throw new ConflictError('Email is already in use by another account.', 'EMAIL_TAKEN');
     }
     await pool.execute(
       `UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE user_id = ?`,

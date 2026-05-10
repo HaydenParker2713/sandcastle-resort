@@ -36,54 +36,40 @@ const upload = multer({
 
 const VALID_STATUSES = Object.values(UNIT_STATUS);
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     res.json(await unitService.getAllUnits());
-  } catch (error) {
-    console.error('Get units error:', error);
-    res.status(500).json({ error: 'Server error fetching units.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.post('/', requireRole(ROLES.ADMIN), async (req, res) => {
+router.post('/', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const { unit_type_id, unit_code, status } = req.body;
     if (!unit_type_id || !unit_code) {
       return res.status(400).json({ error: 'unit_type_id and unit_code are required.' });
     }
-    try {
-      const insertId = await unitService.createUnit(unit_type_id, unit_code, status || UNIT_STATUS.AVAILABLE);
-      const actor    = req.session.user;
-      const uType    = await unitService.getUnitTypeById(Number(unit_type_id));
-      logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
-        'unit.create', 'unit', insertId, {
-          unit_code,
-          type_name: uType?.type_name || `type #${unit_type_id}`,
-          status:    status || UNIT_STATUS.AVAILABLE,
-        });
-      res.status(201).json({ message: 'Unit created successfully.', unit_id: insertId });
-    } catch (error) {
-      if (error?.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Unit code already exists.' });
-      throw error;
-    }
-  } catch (error) {
-    console.error('Create unit error:', error);
-    res.status(500).json({ error: 'Server error creating unit.' });
-  }
+    const insertId = await unitService.createUnit(unit_type_id, unit_code, status || UNIT_STATUS.AVAILABLE);
+    const actor    = req.session.user;
+    const uType    = await unitService.getUnitTypeById(Number(unit_type_id));
+    logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+      'unit.create', 'unit', insertId, {
+        unit_code,
+        type_name: uType?.type_name || `type #${unit_type_id}`,
+        status:    status || UNIT_STATUS.AVAILABLE,
+      });
+    res.status(201).json({ message: 'Unit created successfully.', unit_id: insertId });
+  } catch (err) { next(err); }
 });
 
-router.get('/:id/availability', async (req, res) => {
+router.get('/:id/availability', async (req, res, next) => {
   try {
     const unit_id = parseInt(req.params.id, 10);
     if (isNaN(unit_id)) return res.status(400).json({ error: 'Invalid unit ID.' });
     res.json(await unitService.getUnitAvailability(unit_id));
-  } catch (error) {
-    console.error('Get availability error:', error);
-    res.status(500).json({ error: 'Server error fetching availability.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.patch('/:id/status', requireRole(ROLES.ADMIN), async (req, res) => {
+router.patch('/:id/status', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid unit ID.' });
@@ -105,13 +91,10 @@ router.patch('/:id/status', requireRole(ROLES.ADMIN), async (req, res) => {
         to:        status,
       });
     res.json({ message: 'Unit status updated.' });
-  } catch (error) {
-    console.error('Update unit status error:', error);
-    res.status(500).json({ error: 'Server error updating unit status.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.patch('/:id/details', requireRole(ROLES.ADMIN), async (req, res) => {
+router.patch('/:id/details', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid unit ID.' });
@@ -153,14 +136,10 @@ router.patch('/:id/details', requireRole(ROLES.ADMIN), async (req, res) => {
     logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
       'unit.edit', 'unit', id, { unit_code: before?.unit_code, ...updates });
     res.json({ message: 'Unit updated.' });
-  } catch (err) {
-    if (err.code === 'DUPLICATE_CODE') return res.status(409).json({ error: err.message });
-    console.error('Update unit details error:', err);
-    res.status(500).json({ error: 'Server error updating unit.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.delete('/:id', requireRole(ROLES.ADMIN), async (req, res) => {
+router.delete('/:id', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid unit ID.' });
@@ -173,14 +152,10 @@ router.delete('/:id', requireRole(ROLES.ADMIN), async (req, res) => {
     logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
       'unit.delete', 'unit', id, { unit_code: before?.unit_code, type_name: before?.type_name });
     res.json({ message: 'Unit deleted.' });
-  } catch (err) {
-    if (err.code === 'HAS_RESERVATIONS') return res.status(409).json({ error: err.message });
-    console.error('Delete unit error:', err);
-    res.status(500).json({ error: 'Server error deleting unit.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.patch('/:id/photo', requireRole(ROLES.ADMIN), async (req, res) => {
+router.patch('/:id/photo', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid unit ID.' });
@@ -200,10 +175,7 @@ router.patch('/:id/photo', requireRole(ROLES.ADMIN), async (req, res) => {
     const ok = await unitService.updateUnitDetails(id, { photo_url });
     if (!ok) return res.status(404).json({ error: 'Unit not found.' });
     res.json({ message: 'Photo updated.', photo_url });
-  } catch (err) {
-    console.error('Update unit photo error:', err);
-    res.status(500).json({ error: err.message || 'Server error updating photo.' });
-  }
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

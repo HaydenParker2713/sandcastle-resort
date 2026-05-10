@@ -9,17 +9,14 @@ const { requireRole } = require('../middleware/auth');
 const router = express.Router();
 
 // GET /api/activity-items — public, returns all activities ordered by sort_order
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     res.json(await activityListService.getAll());
-  } catch (err) {
-    console.error('Get activities error:', err);
-    res.status(500).json({ error: 'Server error.' });
-  }
+  } catch (err) { next(err); }
 });
 
 // POST /api/activity-items — admin only, add a new activity
-router.post('/', requireRole('admin'), async (req, res) => {
+router.post('/', requireRole('admin'), async (req, res, next) => {
   try {
     const { icon, name, description, tags } = req.body;
 
@@ -31,24 +28,18 @@ router.post('/', requireRole('admin'), async (req, res) => {
 
     const item = await activityListService.create({ icon, name, description, tags });
     res.status(201).json(item);
-  } catch (err) {
-    console.error('Create activity error:', err);
-    res.status(500).json({ error: 'Server error.' });
-  }
+  } catch (err) { next(err); }
 });
 
 // DELETE /api/activity-items/:id — admin only, remove an activity
-router.delete('/:id', requireRole('admin'), async (req, res) => {
+router.delete('/:id', requireRole('admin'), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID.' });
     const deleted = await activityListService.delete(id);
     if (!deleted) return res.status(404).json({ error: 'Activity not found.' });
     res.json({ message: 'Activity deleted.' });
-  } catch (err) {
-    console.error('Delete activity error:', err);
-    res.status(500).json({ error: 'Server error.' });
-  }
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

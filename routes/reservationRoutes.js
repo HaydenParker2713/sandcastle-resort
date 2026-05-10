@@ -16,16 +16,13 @@ const createLimiter = rateLimit({
 
 const router = express.Router();
 
-router.get('/', requireRole(ROLES.ADMIN, ROLES.STAFF), async (req, res) => {
+router.get('/', requireRole(ROLES.ADMIN, ROLES.STAFF), async (req, res, next) => {
   try {
     res.json(await reservationService.getAllReservations());
-  } catch (err) {
-    console.error('Get all reservations error:', err);
-    res.status(500).json({ error: 'Server error fetching reservations.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.post('/', requireAuth, createLimiter, async (req, res) => {
+router.post('/', requireAuth, createLimiter, async (req, res, next) => {
   try {
     const user_id = req.session.user.user_id;
     const { unit_id, check_in, check_out, adults, children } = req.body;
@@ -73,25 +70,16 @@ router.post('/', requireAuth, createLimiter, async (req, res) => {
         reservationId,
       });
     }).catch(err => console.error('Confirmation email failed:', err.message));
-  } catch (err) {
-    if (err.code === 'DOUBLE_BOOKING')    return res.status(409).json({ error: err.message });
-    if (err.code === 'UNIT_UNAVAILABLE')  return res.status(409).json({ error: err.message });
-    if (err.code === 'UNIT_NOT_FOUND')    return res.status(404).json({ error: err.message });
-    console.error('Create reservation error:', err);
-    res.status(500).json({ error: 'Server error creating reservation.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.get('/mine', requireAuth, async (req, res) => {
+router.get('/mine', requireAuth, async (req, res, next) => {
   try {
     res.json(await reservationService.getReservationsByUser(req.session.user.user_id));
-  } catch (err) {
-    console.error('Get reservations error:', err);
-    res.status(500).json({ error: 'Server error fetching reservations.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.post('/:id/cancel', requireAuth, async (req, res) => {
+router.post('/:id/cancel', requireAuth, async (req, res, next) => {
   try {
     const reservation_id = parseInt(req.params.id, 10);
     if (isNaN(reservation_id)) return res.status(400).json({ error: 'Invalid reservation ID.' });
@@ -99,33 +87,23 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
     const user_id = req.session.user.user_id;
     const isAdmin = req.session.user.role_name === ROLES.ADMIN;
 
-    try {
-      const resInfo = await reservationService.getReservationById(reservation_id);
-      await reservationService.cancelReservation(reservation_id, user_id, isAdmin);
+    const resInfo = await reservationService.getReservationById(reservation_id);
+    await reservationService.cancelReservation(reservation_id, user_id, isAdmin);
 
-      const actor = req.session.user;
-      logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
-        'reservation.cancel', 'reservation', reservation_id, {
-          guest_name:        resInfo ? `${resInfo.first_name} ${resInfo.last_name}` : null,
-          guest_email:       resInfo?.email,
-          unit_code:         resInfo?.unit_code,
-          type_name:         resInfo?.type_name,
-          check_in:          resInfo?.check_in,
-          check_out:         resInfo?.check_out,
-          amount:            resInfo?.total_amount,
-          cancelled_by_role: actor.role_name,
-        });
-      res.json({ message: 'Reservation cancelled.' });
-    } catch (err) {
-      if (err.code === 'NOT_FOUND')         return res.status(404).json({ error: 'Reservation not found.' });
-      if (err.code === 'ALREADY_CANCELLED') return res.status(409).json({ error: 'Reservation is already cancelled.' });
-      if (err.code === 'NOT_ALLOWED')       return res.status(403).json({ error: 'Not allowed.' });
-      throw err;
-    }
-  } catch (err) {
-    console.error('Cancel reservation error:', err);
-    res.status(500).json({ error: 'Server error cancelling reservation.' });
-  }
+    const actor = req.session.user;
+    logAction(actor.user_id, `${actor.first_name} ${actor.last_name}`,
+      'reservation.cancel', 'reservation', reservation_id, {
+        guest_name:        resInfo ? `${resInfo.first_name} ${resInfo.last_name}` : null,
+        guest_email:       resInfo?.email,
+        unit_code:         resInfo?.unit_code,
+        type_name:         resInfo?.type_name,
+        check_in:          resInfo?.check_in,
+        check_out:         resInfo?.check_out,
+        amount:            resInfo?.total_amount,
+        cancelled_by_role: actor.role_name,
+      });
+    res.json({ message: 'Reservation cancelled.' });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

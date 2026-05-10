@@ -35,16 +35,13 @@ const upload = multer({
   },
 });
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     res.json(await unitService.getAllUnitTypes());
-  } catch (err) {
-    console.error('Get unit types error:', err);
-    res.status(500).json({ error: 'Server error fetching unit types.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.patch('/:id', ...requireRole(ROLES.ADMIN), async (req, res) => {
+router.patch('/:id', ...requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid unit type ID.' });
@@ -79,10 +76,7 @@ router.patch('/:id', ...requireRole(ROLES.ADMIN), async (req, res) => {
       'room_type.edit', 'room_type', id, logDetail);
 
     res.json({ message: 'Room type updated.', ...(req.file ? { photo_url: updates.photo_url } : {}) });
-  } catch (err) {
-    console.error('Update unit type error:', err);
-    res.status(500).json({ error: err.message || 'Server error updating room type.' });
-  }
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

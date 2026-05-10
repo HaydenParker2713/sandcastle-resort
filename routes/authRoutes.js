@@ -25,7 +25,7 @@ const forgotLimiter = rateLimit({
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-router.post('/register', async (req, res) => {
+router.post('/register', async (req, res, next) => {
   try {
     const { first_name, last_name, email, password } = req.body;
 
@@ -48,17 +48,14 @@ router.post('/register', async (req, res) => {
     const user = await authService.register({ first_name, last_name, email, password });
 
     req.session.regenerate((err) => {
-      if (err) return res.status(500).json({ error: 'Session error.' });
+      if (err) return next(err);
       req.session.user = user;
       res.status(201).json({ message: 'Registration successful.', user });
     });
-  } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ error: 'Server error during registration.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', loginLimiter, async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -73,7 +70,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     if (!passwordMatch) return res.status(401).json({ error: 'Invalid email or password.' });
 
     req.session.regenerate((err) => {
-      if (err) return res.status(500).json({ error: 'Session error.' });
+      if (err) return next(err);
       req.session.user = {
         user_id:    user.user_id,
         first_name: user.first_name,
@@ -83,10 +80,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       };
       res.json({ message: 'Login successful.', user: req.session.user });
     });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Server error during login.' });
-  }
+  } catch (err) { next(err); }
 });
 
 router.post('/logout', (req, res) => {
@@ -101,7 +95,7 @@ router.get('/me', (req, res) => {
   res.json({ user: req.session.user || null });
 });
 
-router.patch('/profile', requireAuth, async (req, res) => {
+router.patch('/profile', requireAuth, async (req, res, next) => {
   try {
     const { first_name, last_name, email } = req.body;
     if (!first_name || !last_name || !email) {
@@ -116,14 +110,10 @@ router.patch('/profile', requireAuth, async (req, res) => {
     const updated = await authService.updateProfile(req.session.user.user_id, { first_name, last_name, email });
     req.session.user = { ...req.session.user, first_name: updated.first_name, last_name: updated.last_name, email: updated.email };
     res.json({ message: 'Profile updated.', user: req.session.user });
-  } catch (err) {
-    if (err.code === 'EMAIL_TAKEN') return res.status(409).json({ error: err.message });
-    console.error('Update profile error:', err);
-    res.status(500).json({ error: 'Server error updating profile.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.post('/change-password', requireAuth, async (req, res) => {
+router.post('/change-password', requireAuth, async (req, res, next) => {
   try {
     const { current_password, new_password } = req.body;
     if (!current_password || !new_password) {
@@ -145,13 +135,10 @@ router.post('/change-password', requireAuth, async (req, res) => {
       .catch(err => console.error('Security notice email failed:', err.message));
 
     res.json({ message: 'Password updated successfully.' });
-  } catch (error) {
-    console.error('Change password error:', error);
-    res.status(500).json({ error: 'Server error changing password.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.post('/forgot-password', forgotLimiter, async (req, res) => {
+router.post('/forgot-password', forgotLimiter, async (req, res, next) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required.' });
 
@@ -177,13 +164,10 @@ router.post('/forgot-password', forgotLimiter, async (req, res) => {
       );
       res.status(503).json({ error: 'Could not send reset email. Please try again later.' });
     }
-  } catch (err) {
-    console.error('Forgot password error:', err);
-    res.status(500).json({ error: 'Server error. Please try again.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', async (req, res, next) => {
   try {
     const { token, new_password } = req.body;
     if (!token || !new_password) {
@@ -194,11 +178,7 @@ router.post('/reset-password', async (req, res) => {
     }
     await authService.resetPasswordByToken(token, new_password);
     res.json({ message: 'Password reset successfully. You can now log in.' });
-  } catch (err) {
-    if (err.code === 'INVALID_TOKEN') return res.status(400).json({ error: err.message });
-    console.error('Reset password error:', err);
-    res.status(500).json({ error: 'Server error resetting password.' });
-  }
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

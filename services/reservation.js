@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { NotFoundError, ConflictError, ForbiddenError } = require('../errors');
 
 const reservationService = {
   async createReservation({ user_id, unit_id, check_in, check_out, adults = 1, children = 0 }) {
@@ -17,14 +18,10 @@ const reservationService = {
         [unit_id]
       );
       if (!unitRows.length) {
-        const err = new Error('Unit not found.');
-        err.code = 'UNIT_NOT_FOUND';
-        throw err;
+        throw new NotFoundError('Unit not found.');
       }
       if (unitRows[0].status !== 'available') {
-        const err = new Error('Unit is not available for booking.');
-        err.code = 'UNIT_UNAVAILABLE';
-        throw err;
+        throw new ConflictError('Unit is not available for booking.', 'UNIT_UNAVAILABLE');
       }
 
       // Overlap check: an existing booking overlaps if it starts before our checkout
@@ -36,9 +33,7 @@ const reservationService = {
         [unit_id, check_out, check_in]
       );
       if (overlap.length > 0) {
-        const err = new Error('Unit is not available for the selected dates.');
-        err.code = 'DOUBLE_BOOKING';
-        throw err;
+        throw new ConflictError('Unit is not available for the selected dates.', 'DOUBLE_BOOKING');
       }
 
       const [resResult] = await conn.execute(
@@ -140,23 +135,17 @@ const reservationService = {
       );
 
       if (!rows.length) {
-        const err = new Error('Reservation not found.');
-        err.code = 'NOT_FOUND';
-        throw err;
+        throw new NotFoundError('Reservation not found.');
       }
 
       const reservation = rows[0];
 
       if (reservation.status === 'cancelled') {
-        const err = new Error('Reservation is already cancelled.');
-        err.code = 'ALREADY_CANCELLED';
-        throw err;
+        throw new ConflictError('Reservation is already cancelled.', 'ALREADY_CANCELLED');
       }
 
       if (!isAdmin && reservation.user_id !== user_id) {
-        const err = new Error('Not found or not allowed.');
-        err.code = 'NOT_ALLOWED';
-        throw err;
+        throw new ForbiddenError('Not found or not allowed.');
       }
 
       await conn.execute(

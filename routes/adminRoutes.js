@@ -12,16 +12,13 @@ router.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Admin routes updated 2024' });
 });
 
-router.get('/users', requireRole(ROLES.ADMIN), async (req, res) => {
+router.get('/users', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     res.json(await authService.getAllUsers());
-  } catch (err) {
-    console.error('Get users error:', err);
-    res.status(500).json({ error: 'Server error fetching users.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.patch('/users/:id/role', requireRole(ROLES.ADMIN), async (req, res) => {
+router.patch('/users/:id/role', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const target_id = parseInt(req.params.id, 10);
     if (isNaN(target_id)) return res.status(400).json({ error: 'Invalid user ID.' });
@@ -50,28 +47,19 @@ router.patch('/users/:id/role', requireRole(ROLES.ADMIN), async (req, res) => {
         to:           role_name,
       });
     res.json({ message: `Role updated to ${role_name}.` });
-  } catch (err) {
-    if (err.code === 'INVALID_ROLE') return res.status(400).json({ error: err.message });
-    console.error('Update user role error:', err);
-    res.status(500).json({ error: 'Server error updating role.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.get('/stats', requireRole(ROLES.ADMIN), async (req, res) => {
+router.get('/stats', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     res.json(await statsService.getAdminStats());
-  } catch (err) {
-    console.error('Stats error:', err);
-    res.status(500).json({ error: 'Server error fetching stats.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.get('/reviews', requireRole(ROLES.ADMIN), async (req, res) => {
+router.get('/reviews', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     res.json(await reviewService.getAllReviews());
-  } catch (err) {
-    res.status(500).json({ error: 'Server error fetching reviews.' });
-  }
+  } catch (err) { next(err); }
 });
 
 router.get('/audit-log', requireRole(ROLES.ADMIN), async (req, res) => {

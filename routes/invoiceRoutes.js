@@ -6,25 +6,19 @@ const { ROLES } = require('../constants');
 
 const router = express.Router();
 
-router.get('/mine', requireAuth, async (req, res) => {
+router.get('/mine', requireAuth, async (req, res, next) => {
   try {
     res.json(await invoiceService.getInvoicesByUser(req.session.user.user_id));
-  } catch (err) {
-    console.error('Get invoices error:', err);
-    res.status(500).json({ error: 'Server error fetching invoices.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.get('/', requireRole(ROLES.ADMIN), async (req, res) => {
+router.get('/', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     res.json(await invoiceService.getAllInvoices());
-  } catch (err) {
-    console.error('Get all invoices error:', err);
-    res.status(500).json({ error: 'Server error fetching invoices.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.post('/:id/pay', requireRole(ROLES.ADMIN), async (req, res) => {
+router.post('/:id/pay', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid invoice ID.' });
@@ -47,10 +41,7 @@ router.post('/:id/pay', requireRole(ROLES.ADMIN), async (req, res) => {
         amount:      inv?.total_amount,
       });
     res.json({ message: 'Invoice marked as paid.' });
-  } catch (err) {
-    console.error('Mark invoice paid error:', err);
-    res.status(500).json({ error: 'Server error updating invoice.' });
-  }
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

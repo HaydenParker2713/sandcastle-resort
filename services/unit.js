@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { ConflictError } = require('../errors');
 
 const unitService = {
   async getAllUnits() {
@@ -76,11 +77,16 @@ const unitService = {
   },
 
   async createUnit(unit_type_id, unit_code, status = 'available') {
-    const [result] = await pool.execute(
-      `INSERT INTO units (unit_type_id, unit_code, status) VALUES (?, ?, ?)`,
-      [unit_type_id, unit_code, status]
-    );
-    return result.insertId;
+    try {
+      const [result] = await pool.execute(
+        `INSERT INTO units (unit_type_id, unit_code, status) VALUES (?, ?, ?)`,
+        [unit_type_id, unit_code, status]
+      );
+      return result.insertId;
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') throw new ConflictError('Unit code already exists.', 'DUPLICATE_CODE');
+      throw err;
+    }
   },
 
   async updateUnitStatus(unit_id, status) {
@@ -101,11 +107,7 @@ const unitService = {
       const [result] = await pool.execute(sql, params);
       return result.affectedRows > 0;
     } catch (err) {
-      if (err.code === 'ER_DUP_ENTRY') {
-        const e = new Error('Unit code already in use.');
-        e.code = 'DUPLICATE_CODE';
-        throw e;
-      }
+      if (err.code === 'ER_DUP_ENTRY') throw new ConflictError('Unit code already in use.', 'DUPLICATE_CODE');
       throw err;
     }
   },
@@ -126,9 +128,7 @@ const unitService = {
       [unit_id]
     );
     if (active.length) {
-      const err = new Error('Cannot delete a unit with active reservations.');
-      err.code = 'HAS_RESERVATIONS';
-      throw err;
+      throw new ConflictError('Cannot delete a unit with active reservations.', 'HAS_RESERVATIONS');
     }
     const [result] = await pool.execute(`DELETE FROM units WHERE unit_id = ?`, [unit_id]);
     return result.affectedRows > 0;

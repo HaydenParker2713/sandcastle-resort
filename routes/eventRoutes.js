@@ -40,16 +40,13 @@ const upload = multer({
   },
 });
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     res.json(await eventService.getAll());
-  } catch (err) {
-    console.error('Get events error:', err);
-    res.status(500).json({ error: 'Server error fetching events.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.post('/', requireRole(ROLES.STAFF, ROLES.ADMIN), createLimiter, upload.single('image'), async (req, res) => {
+router.post('/', requireRole(ROLES.STAFF, ROLES.ADMIN), createLimiter, upload.single('image'), async (req, res, next) => {
   try {
     const { title, description, event_date, event_time, location, ticket_info, banner_emoji } = req.body;
 
@@ -74,13 +71,10 @@ router.post('/', requireRole(ROLES.STAFF, ROLES.ADMIN), createLimiter, upload.si
       created_by: req.session.user.user_id,
     });
     res.status(201).json(event);
-  } catch (err) {
-    console.error('Create event error:', err);
-    res.status(500).json({ error: 'Server error creating event.' });
-  }
+  } catch (err) { next(err); }
 });
 
-router.delete('/:id', requireRole(ROLES.STAFF, ROLES.ADMIN), async (req, res) => {
+router.delete('/:id', requireRole(ROLES.STAFF, ROLES.ADMIN), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid event ID.' });
@@ -92,10 +86,7 @@ router.delete('/:id', requireRole(ROLES.STAFF, ROLES.ADMIN), async (req, res) =>
       fs.unlink(path.join(__dirname, '..', 'public', result.imagePath), () => {});
     }
     res.json({ message: 'Event deleted.' });
-  } catch (err) {
-    console.error('Delete event error:', err);
-    res.status(500).json({ error: 'Server error deleting event.' });
-  }
+  } catch (err) { next(err); }
 });
 
 // Catch multer errors and return JSON instead of Express's default HTML error page.
