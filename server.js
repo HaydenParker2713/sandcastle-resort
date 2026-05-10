@@ -35,6 +35,9 @@ const unitTypeRoutes        = require("./routes/unitTypeRoutes");
 const { eventService, barService, activityListService, unitService } = require("./services/index");
 const { ensureAuditTable } = require("./utils/audit");
 
+// Register event listeners (side effects: email notifications)
+require("./events/listeners/emailListeners");
+
 const app  = express();
 const PORT = process.env.PORT || 3000;
 

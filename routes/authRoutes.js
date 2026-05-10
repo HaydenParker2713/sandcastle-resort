@@ -2,8 +2,9 @@ const express    = require('express');
 const rateLimit  = require('express-rate-limit');
 const { authService } = require('../services/index');
 const { requireAuth } = require('../middleware/auth');
-const { sendPasswordChangedNotice, sendPasswordReset } = require('../utils/email');
+const { sendPasswordReset } = require('../utils/email');
 const { pool } = require('../config/db');
+const appEvents = require('../events');
 
 const router = express.Router();
 
@@ -131,8 +132,7 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
 
     await authService.changePassword(req.session.user.user_id, new_password);
 
-    sendPasswordChangedNotice({ to: user.email, firstName: user.first_name })
-      .catch(err => console.error('Security notice email failed:', err.message));
+    appEvents.emit('auth.password_changed', { email: user.email, firstName: user.first_name });
 
     res.json({ message: 'Password updated successfully.' });
   } catch (err) { next(err); }

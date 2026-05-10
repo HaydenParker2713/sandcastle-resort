@@ -2,8 +2,8 @@ const express    = require('express');
 const rateLimit  = require('express-rate-limit');
 const { reservationService } = require('../services/index');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { sendBookingConfirmation } = require('../utils/email');
 const { logAction } = require('../utils/audit');
+const appEvents = require('../events');
 const { ROLES } = require('../constants');
 
 const createLimiter = rateLimit({
@@ -53,23 +53,7 @@ router.post('/', requireAuth, createLimiter, async (req, res, next) => {
     });
 
     res.status(201).json({ message: 'Reservation created.', reservation_id: reservationId });
-
-    // Fire-and-forget: send confirmation email after responding.
-    reservationService.getReservationById(reservationId).then(details => {
-      if (!details) return;
-      const nights = Math.round((new Date(details.check_out) - new Date(details.check_in)) / 86400000);
-      return sendBookingConfirmation({
-        to:          details.email,
-        firstName:   details.first_name,
-        unitCode:    details.unit_code,
-        typeName:    details.type_name,
-        checkIn:     details.check_in,
-        checkOut:    details.check_out,
-        nights,
-        totalAmount: details.total_amount,
-        reservationId,
-      });
-    }).catch(err => console.error('Confirmation email failed:', err.message));
+    appEvents.emit('reservation.created', { reservationId });
   } catch (err) { next(err); }
 });
 
