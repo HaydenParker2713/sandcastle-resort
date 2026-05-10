@@ -1,38 +1,14 @@
 const express = require('express');
 const path    = require('path');
 const fs      = require('fs');
-const crypto  = require('crypto');
-const multer  = require('multer');
 const { unitService } = require('../services/index');
 const { requireRole } = require('../middleware/auth');
+const { createUploader } = require('../middleware/upload');
 const { logAction } = require('../utils/audit');
 const { ROLES, UNIT_STATUS } = require('../constants');
 
 const router = express.Router();
-
-const uploadDir = path.join(__dirname, '..', 'public', 'uploads', 'units');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `unit-${crypto.randomBytes(8).toString('hex')}${ext}`);
-  },
-});
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-const ALLOWED_EXT  = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (!ALLOWED_MIME.has(file.mimetype) || !ALLOWED_EXT.has(ext)) {
-      return cb(new Error('Only JPEG, PNG, WebP, or GIF images are allowed (max 5 MB).'));
-    }
-    cb(null, true);
-  },
-});
+const upload = createUploader('units', 'unit-');
 
 const VALID_STATUSES = Object.values(UNIT_STATUS);
 

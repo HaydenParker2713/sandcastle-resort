@@ -1,6 +1,6 @@
 const express    = require('express');
 const rateLimit  = require('express-rate-limit');
-const { authService } = require('../services/index');
+const { authService, userService, passwordService } = require('../services/index');
 const { requireAuth } = require('../middleware/auth');
 const { sendPasswordReset } = require('../utils/email');
 const { pool } = require('../config/db');
@@ -108,7 +108,7 @@ router.patch('/profile', requireAuth, async (req, res, next) => {
     if (!EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Invalid email address.' });
     }
-    const updated = await authService.updateProfile(req.session.user.user_id, { first_name, last_name, email });
+    const updated = await userService.updateProfile(req.session.user.user_id, { first_name, last_name, email });
     req.session.user = { ...req.session.user, first_name: updated.first_name, last_name: updated.last_name, email: updated.email };
     res.json({ message: 'Profile updated.', user: req.session.user });
   } catch (err) { next(err); }
@@ -130,7 +130,7 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
     const match = await authService.verifyPassword(current_password, user.password_hash);
     if (!match) return res.status(401).json({ error: 'Current password is incorrect.' });
 
-    await authService.changePassword(req.session.user.user_id, new_password);
+    await passwordService.changePassword(req.session.user.user_id, new_password);
 
     appEvents.emit('auth.password_changed', { email: user.email, firstName: user.first_name });
 
@@ -143,7 +143,7 @@ router.post('/forgot-password', forgotLimiter, async (req, res, next) => {
   if (!email) return res.status(400).json({ error: 'Email is required.' });
 
   try {
-    const result = await authService.createPasswordResetToken(email);
+    const result = await passwordService.createPasswordResetToken(email);
 
     // Always return 200 whether the email exists or not — prevents email enumeration.
     if (!result) {
@@ -176,7 +176,7 @@ router.post('/reset-password', async (req, res, next) => {
     if (new_password.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters.' });
     }
-    await authService.resetPasswordByToken(token, new_password);
+    await passwordService.resetPasswordByToken(token, new_password);
     res.json({ message: 'Password reset successfully. You can now log in.' });
   } catch (err) { next(err); }
 });

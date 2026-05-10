@@ -31,9 +31,7 @@ const barRoutes             = require("./routes/barRoutes");
 const activityListRoutes    = require("./routes/activityListRoutes");
 const unitTypeRoutes        = require("./routes/unitTypeRoutes");
 
-// Services that need to create their DB tables on first run
-const { eventService, barService, activityListService, unitService } = require("./services/index");
-const { ensureAuditTable } = require("./utils/audit");
+const { runMigrations } = require("./db/migrations");
 
 // Register event listeners (side effects: email notifications)
 require("./events/listeners/emailListeners");
@@ -198,11 +196,7 @@ app.use((err, req, res, next) => {
 async function startServer() {
   try {
     await testConnection();
-    await unitService.ensureColumns();
-    await eventService.ensureTable();
-    await barService.ensureTable();
-    await activityListService.ensureTable();
-    await ensureAuditTable();
+    await runMigrations();
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });

@@ -71,9 +71,6 @@ const unitService = {
     return unitRepo.findAvailability(unit_id);
   },
 
-  async ensureColumns() {
-    return unitRepo.ensureColumns();
-  },
 };
 
 module.exports = unitService;

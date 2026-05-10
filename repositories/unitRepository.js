@@ -119,32 +119,6 @@ const unitRepository = {
     return rows;
   },
 
-  async ensureColumns() {
-    const conn = await pool.getConnection();
-    try {
-      const [typeCols] = await conn.execute(
-        `SELECT COLUMN_NAME FROM information_schema.COLUMNS
-         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'unit_types'
-           AND COLUMN_NAME IN ('description','amenities','photo_url')`
-      );
-      const existingType = new Set(typeCols.map(c => c.COLUMN_NAME));
-      if (!existingType.has('description')) await conn.execute(`ALTER TABLE unit_types ADD COLUMN description VARCHAR(2000) NULL AFTER nightly_rate`);
-      if (!existingType.has('amenities'))   await conn.execute(`ALTER TABLE unit_types ADD COLUMN amenities   VARCHAR(2000) NULL AFTER description`);
-      if (!existingType.has('photo_url'))   await conn.execute(`ALTER TABLE unit_types ADD COLUMN photo_url   VARCHAR(500)  NULL AFTER amenities`);
-
-      const [unitCols] = await conn.execute(
-        `SELECT COLUMN_NAME FROM information_schema.COLUMNS
-         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'units'
-           AND COLUMN_NAME IN ('description','photo_url','nightly_rate')`
-      );
-      const existingUnit = new Set(unitCols.map(c => c.COLUMN_NAME));
-      if (!existingUnit.has('description'))  await conn.execute(`ALTER TABLE units ADD COLUMN description   VARCHAR(2000) NULL`);
-      if (!existingUnit.has('photo_url'))    await conn.execute(`ALTER TABLE units ADD COLUMN photo_url     VARCHAR(500)  NULL`);
-      if (!existingUnit.has('nightly_rate')) await conn.execute(`ALTER TABLE units ADD COLUMN nightly_rate  DECIMAL(10,2) NULL`);
-    } finally {
-      conn.release();
-    }
-  },
 };
 
 module.exports = unitRepository;

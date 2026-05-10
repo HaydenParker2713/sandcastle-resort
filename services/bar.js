@@ -1,10 +1,6 @@
 const barRepo = require('../repositories/barRepository');
 
 const barService = {
-  async ensureTable() {
-    return barRepo.ensureTable();
-  },
-
   async getAll() {
     return barRepo.findAll();
   },

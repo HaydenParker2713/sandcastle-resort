@@ -32,13 +32,6 @@ const reservationRepository = {
     return result.insertId;
   },
 
-  async insertInvoice(conn, { reservation_id, total_amount }) {
-    await conn.execute(
-      `INSERT INTO invoices (reservation_id, total_amount, status) VALUES (?, ?, 'unpaid')`,
-      [reservation_id, total_amount]
-    );
-  },
-
   async findForCancel(conn, reservation_id) {
     const [rows] = await conn.execute(
       `SELECT reservation_id, user_id, status FROM reservations WHERE reservation_id = ? FOR UPDATE`,
@@ -50,13 +43,6 @@ const reservationRepository = {
   async cancelReservation(conn, reservation_id) {
     await conn.execute(
       `UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ?`,
-      [reservation_id]
-    );
-  },
-
-  async voidUnpaidInvoice(conn, reservation_id) {
-    await conn.execute(
-      `UPDATE invoices SET status = 'voided' WHERE reservation_id = ? AND status = 'unpaid'`,
       [reservation_id]
     );
   },

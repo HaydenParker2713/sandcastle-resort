@@ -1,10 +1,6 @@
 const activityListRepo = require('../repositories/activityListRepository');
 
 const activityListService = {
-  async ensureTable() {
-    return activityListRepo.ensureTable();
-  },
-
   async getAll() {
     return activityListRepo.findAll();
   },

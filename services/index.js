@@ -3,6 +3,8 @@
 module.exports = {
   unitService:          require('./unit'),
   authService:          require('./auth'),
+  userService:          require('./userService'),
+  passwordService:      require('./passwordService'),
   reservationService:   require('./reservation'),
   invoiceService:       require('./invoice'),
   ticketService:        require('./ticket'),

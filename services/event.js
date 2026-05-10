@@ -1,10 +1,6 @@
 const eventRepo = require('../repositories/eventRepository');
 
 const eventService = {
-  async ensureTable() {
-    return eventRepo.ensureTable();
-  },
-
   async getAll() {
     return eventRepo.findAll();
   },

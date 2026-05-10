@@ -1,20 +1,6 @@
 const { pool } = require('../config/db');
 
 const barRepository = {
-  async ensureTable() {
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS bar_items (
-        item_id     INT AUTO_INCREMENT PRIMARY KEY,
-        category    VARCHAR(100) NOT NULL,
-        name        VARCHAR(255) NOT NULL,
-        description TEXT,
-        price       DECIMAL(8,2) DEFAULT NULL,
-        sort_order  INT DEFAULT 0,
-        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  },
-
   async findAll() {
     const [rows] = await pool.execute(
       `SELECT * FROM bar_items ORDER BY category, sort_order, item_id`

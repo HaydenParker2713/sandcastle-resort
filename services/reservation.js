@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const reservationRepo = require('../repositories/reservationRepository');
+const invoiceRepo     = require('../repositories/invoiceRepository');
 const { NotFoundError, ConflictError, ForbiddenError } = require('../errors');
 
 const reservationService = {
@@ -20,7 +21,7 @@ const reservationService = {
       const nightly_rate = Number(unit.nightly_rate);
       const nights       = Math.round((new Date(check_out) - new Date(check_in)) / 86400000);
       const total_amount = (nights * nightly_rate).toFixed(2);
-      await reservationRepo.insertInvoice(conn, { reservation_id, total_amount });
+      await invoiceRepo.insert(conn, { reservation_id, total_amount });
 
       await conn.commit();
       return reservation_id;
@@ -60,7 +61,7 @@ const reservationService = {
 
       await reservationRepo.cancelReservation(conn, reservation_id);
       // Only void invoices that are still unpaid — paid or already-voided invoices are not touched.
-      await reservationRepo.voidUnpaidInvoice(conn, reservation_id);
+      await invoiceRepo.voidUnpaid(conn, reservation_id);
 
       await conn.commit();
     } catch (err) {

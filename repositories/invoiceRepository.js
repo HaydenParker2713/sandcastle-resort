@@ -1,6 +1,24 @@
 const { pool } = require('../config/db');
 
 const invoiceRepository = {
+  // ── Transactional (accept conn) ──────────────────────────────────────────────
+
+  async insert(conn, { reservation_id, total_amount }) {
+    await conn.execute(
+      `INSERT INTO invoices (reservation_id, total_amount, status) VALUES (?, ?, 'unpaid')`,
+      [reservation_id, total_amount]
+    );
+  },
+
+  async voidUnpaid(conn, reservation_id) {
+    await conn.execute(
+      `UPDATE invoices SET status = 'voided' WHERE reservation_id = ? AND status = 'unpaid'`,
+      [reservation_id]
+    );
+  },
+
+  // ── Non-transactional (use pool) ─────────────────────────────────────────────
+
   async findByUser(user_id) {
     const [rows] = await pool.execute(
       `SELECT i.invoice_id, i.total_amount, i.status AS invoice_status, i.created_at,

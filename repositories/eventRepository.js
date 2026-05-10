@@ -1,25 +1,6 @@
 const { pool } = require('../config/db');
 
 const eventRepository = {
-  async ensureTable() {
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS events (
-        event_id     INT AUTO_INCREMENT PRIMARY KEY,
-        title        VARCHAR(255)  NOT NULL,
-        description  TEXT,
-        event_date   DATE,
-        event_time   VARCHAR(50),
-        location     VARCHAR(255),
-        ticket_info  VARCHAR(255),
-        banner_emoji VARCHAR(10)   DEFAULT '🎉',
-        image_path   VARCHAR(500)  DEFAULT NULL,
-        created_by   BIGINT UNSIGNED,
-        created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
-      )
-    `);
-  },
-
   async findAll() {
     const [rows] = await pool.execute(
       `SELECT e.event_id, e.title, e.description, e.event_date, e.event_time,

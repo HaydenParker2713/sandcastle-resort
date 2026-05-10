@@ -1,20 +1,6 @@
 const { pool } = require('../config/db');
 
 const activityListRepository = {
-  async ensureTable() {
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS resort_activities (
-        activity_id INT AUTO_INCREMENT PRIMARY KEY,
-        icon        VARCHAR(10)  DEFAULT '🏄',
-        name        VARCHAR(255) NOT NULL,
-        description TEXT,
-        tags        VARCHAR(500) DEFAULT NULL,
-        sort_order  INT DEFAULT 0,
-        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  },
-
   async findAll() {
     const [rows] = await pool.execute(
       `SELECT * FROM resort_activities ORDER BY sort_order, activity_id`
