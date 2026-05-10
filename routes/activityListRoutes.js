@@ -1,22 +1,17 @@
-// ── Activity list routes  /api/activity-items ─────────────────────────────────
-// Resort activities shown on the public Activities page.
-// Anyone can read; only admin can add or remove entries.
-
 const express = require('express');
 const { activityListService } = require('../services');
 const { requireRole } = require('../middleware/auth');
+const { ROLES } = require('../constants');
 
 const router = express.Router();
 
-// GET /api/activity-items — public, returns all activities ordered by sort_order
 router.get('/', async (req, res, next) => {
   try {
     res.json(await activityListService.getAll());
   } catch (err) { next(err); }
 });
 
-// POST /api/activity-items — admin only, add a new activity
-router.post('/', requireRole('admin'), async (req, res, next) => {
+router.post('/', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const { icon, name, description, tags } = req.body;
 
@@ -31,8 +26,7 @@ router.post('/', requireRole('admin'), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// DELETE /api/activity-items/:id — admin only, remove an activity
-router.delete('/:id', requireRole('admin'), async (req, res, next) => {
+router.delete('/:id', requireRole(ROLES.ADMIN), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID.' });

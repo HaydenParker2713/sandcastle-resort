@@ -43,13 +43,18 @@ router.post('/', requireAuth, createLimiter, async (req, res, next) => {
       return res.status(400).json({ error: 'Check-out must be after check-in.' });
     }
 
+    const adultsNum   = adults   !== undefined ? parseInt(adults,   10) : 1;
+    const childrenNum = children !== undefined ? parseInt(children, 10) : 0;
+    if (isNaN(adultsNum)   || adultsNum   < 1) return res.status(400).json({ error: 'adults must be a positive integer.' });
+    if (isNaN(childrenNum) || childrenNum < 0) return res.status(400).json({ error: 'children must be a non-negative integer.' });
+
     const reservationId = await reservationService.createReservation({
       user_id,
       unit_id:  Number(unit_id),
       check_in,
       check_out,
-      adults:   Number(adults) || 1,
-      children: Number(children) || 0,
+      adults:   adultsNum,
+      children: childrenNum,
     });
 
     res.status(201).json({ message: 'Reservation created.', reservation_id: reservationId });
