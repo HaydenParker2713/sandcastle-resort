@@ -1,0 +1,54 @@
+services:
+
+  # ── MySQL database ────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0          # pull the official MySQL 8.0 image from Docker Hub
+    restart: unless-stopped   # restart automatically if it crashes (not on manual stop)
+    environment:
+      MYSQL_ROOT_PASSWORD: sandcastle_dev   # password for the root DB user
+      MYSQL_DATABASE: sandcastle_resort     # creates this database on first boot
+    volumes:
+      # Persist DB data between restarts (without this, data is lost when container stops)
+      - db_data:/var/lib/mysql
+      # MySQL automatically runs any .sql files placed in this folder on first boot
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+      # Persist uploaded images between restarts
+      - uploads:/app/public/uploads
+    healthcheck:
+      # Docker will ping MySQL every 10s; the app container won't start until this passes
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-psandcastle_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 30s   # give MySQL 30s to initialise before health checks begin
+
+  # ── Node.js app ───────────────────────────────────────────────────────────
+  app:
+    build: .              # build using the Dockerfile in this directory
+    restart: unless-stopped
+    ports:
+      - "3000:3000"       # forward localhost:3000 → container:3000
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      # "db" is the hostname — Docker resolves it to the db container automatically
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: sandcastle_dev
+      DB_NAME: sandcastle_resort
+      SESSION_SECRET: dev_session_secret_change_this_in_production
+      APP_URL: http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy   # wait for MySQL to be ready before starting
+    volumes:
+      # Share the uploads folder so files survive container rebuilds
+      - uploads:/app/public/uploads
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+# Docker manages these — they persist even when containers are stopped or removed
+volumes:
+  db_data:
+  uploads:

@@ -1,0 +1,9 @@
+# Never copy these into the Docker image
+node_modules
+.env
+.git
+tests
+*.md
+coverage
+dist
+npm-debug.log*
