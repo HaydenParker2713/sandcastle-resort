@@ -1,68 +1,30 @@
-const { pool } = require('../config/db');
+const ticketRepo = require('../repositories/ticketRepository');
+const reservationRepo = require('../repositories/reservationRepository');
+const { ForbiddenError } = require('../errors');
 
 const ticketService = {
-  async createTicket({ unit_id, created_by, ticket_type, title, description }) {
-    const [result] = await pool.execute(
-      `INSERT INTO tickets (unit_id, created_by, ticket_type, title, description)
-       VALUES (?, ?, ?, ?, ?)`,
-      [unit_id, created_by, ticket_type, title, description || null]
-    );
-    return result.insertId;
+  async createTicket({ unit_id, created_by, role_name, ticket_type, title, description }) {
+    if (!['admin', 'staff'].includes(role_name)) {
+      const allowed = await reservationRepo.hasConfirmedReservationForUnit(created_by, unit_id);
+      if (!allowed) throw new ForbiddenError('You can only submit tickets for units you have reserved.');
+    }
+    return ticketRepo.insert({ unit_id, created_by, ticket_type, title, description });
   },
 
   async getTicketsByUser(user_id) {
-    const [rows] = await pool.execute(
-      `SELECT t.ticket_id, t.ticket_type, t.title, t.description, t.status, t.created_at,
-              u.unit_code
-       FROM tickets t
-       JOIN units u ON t.unit_id = u.unit_id
-       WHERE t.created_by = ?
-       ORDER BY t.created_at DESC`,
-      [user_id]
-    );
-    return rows;
+    return ticketRepo.findByUser(user_id);
   },
 
   async getAllTickets() {
-    const [rows] = await pool.execute(
-      `SELECT t.ticket_id, t.ticket_type, t.title, t.description, t.status,
-              t.created_at, t.closed_at,
-              u.unit_code,
-              usr.first_name, usr.last_name,
-              cl.first_name AS closed_by_first, cl.last_name AS closed_by_last
-       FROM tickets t
-       JOIN units u    ON t.unit_id    = u.unit_id
-       JOIN users usr  ON t.created_by = usr.user_id
-       LEFT JOIN users cl ON t.closed_by = cl.user_id
-       ORDER BY t.created_at DESC`
-    );
-    return rows;
+    return ticketRepo.findAll();
   },
 
   async getTicketById(ticket_id) {
-    const [rows] = await pool.execute(
-      `SELECT t.ticket_id, t.title, t.ticket_type, t.status,
-              u.unit_code, usr.first_name, usr.last_name
-       FROM tickets t
-       JOIN units u   ON t.unit_id    = u.unit_id
-       JOIN users usr ON t.created_by = usr.user_id
-       WHERE t.ticket_id = ?`,
-      [ticket_id]
-    );
-    return rows[0] || null;
+    return ticketRepo.findById(ticket_id);
   },
 
   async updateTicketStatus(ticket_id, status, closed_by_user_id = null) {
-    let sql, params;
-    if (status === 'closed') {
-      sql    = `UPDATE tickets SET status = ?, closed_by = ?, closed_at = NOW() WHERE ticket_id = ?`;
-      params = [status, closed_by_user_id, ticket_id];
-    } else {
-      sql    = `UPDATE tickets SET status = ?, closed_by = NULL, closed_at = NULL WHERE ticket_id = ?`;
-      params = [status, ticket_id];
-    }
-    const [result] = await pool.execute(sql, params);
-    return result.affectedRows > 0;
+    return ticketRepo.updateStatus(ticket_id, status, closed_by_user_id);
   },
 };
 

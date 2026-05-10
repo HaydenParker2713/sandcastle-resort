@@ -3,7 +3,6 @@ const rateLimit = require('express-rate-limit');
 const { ticketService } = require('../services/index');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
-const { pool } = require('../config/db');
 const { ROLES, TICKET_STATUS, TICKET_TYPES } = require('../constants');
 
 const createLimiter = rateLimit({
@@ -31,24 +30,10 @@ router.post('/', requireAuth, createLimiter, async (req, res, next) => {
       return res.status(400).json({ error: 'Title must be 150 characters or fewer.' });
     }
 
-    // Staff and admin can file tickets for any unit.
-    // Guests must have had at least one confirmed reservation for the unit.
-    const isStaffOrAdmin = [ROLES.ADMIN, ROLES.STAFF].includes(req.session.user.role_name);
-    if (!isStaffOrAdmin) {
-      const [owned] = await pool.execute(
-        `SELECT reservation_id FROM reservations
-         WHERE user_id = ? AND unit_id = ? AND status = 'confirmed'
-         LIMIT 1`,
-        [req.session.user.user_id, Number(unit_id)]
-      );
-      if (!owned.length) {
-        return res.status(403).json({ error: 'You can only submit tickets for units you have reserved.' });
-      }
-    }
-
     const ticket_id = await ticketService.createTicket({
       unit_id:    Number(unit_id),
       created_by: req.session.user.user_id,
+      role_name:  req.session.user.role_name,
       ticket_type,
       title,
       description,
